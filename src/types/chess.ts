@@ -1,7 +1,7 @@
 export type Color = 'w' | 'b';
 export type PieceKind = 'P' | 'N' | 'B' | 'R' | 'Q' | 'K';
 export type Piece = Readonly<{ kind: PieceKind; color: Color }>;
-export type Coin = Readonly<{ kind: 'coin'; color: Color; options: readonly PieceKind[] }>;
+type Coin = Readonly<{ kind: 'coin'; color: Color; options: readonly PieceKind[] }>;
 export type Cell = Piece | Coin | null;
 export type Position = Readonly<{ x: number; y: number }>;
 export type Template = Readonly<{
@@ -12,7 +12,7 @@ export type Template = Readonly<{
   turn: Color;
   cells: readonly (readonly Cell[])[];
 }>;
-export type Rights = Readonly<{ K: boolean; Q: boolean }>;
+type Rights = Readonly<{ K: boolean; Q: boolean }>;
 export type Castling = Readonly<{ w: Rights; b: Rights }>;
 export type Move = Readonly<{
   from: Position;
