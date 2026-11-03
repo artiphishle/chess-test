@@ -14,12 +14,7 @@ export type Template = Readonly<{
 }>;
 export type Rights = Readonly<{ K: boolean; Q: boolean }>;
 export type Castling = Readonly<{ w: Rights; b: Rights }>;
-export type Move = Readonly<{
-  from: Position;
-  to: Position;
-  promotion?: 'N' | 'B' | 'R' | 'Q';
-  castle?: 'K' | 'Q';
-}>;
+export type Move = Readonly<{ from: Position; to: Position; promotion?: 'N' | 'B' | 'R' | 'Q'; castle?: 'K' | 'Q' }>;
 export type Board = readonly (readonly (Piece | null)[])[];
 export type GameState = Readonly<{
   board: Board;
@@ -31,7 +26,4 @@ export type GameState = Readonly<{
   halfmove: number;
   history: readonly string[];
 }>;
-export type Result = Readonly<{
-  winner: Color | null;
-  reason: 'checkmate' | 'stalemate' | 'fifty-moves' | 'threefold' | 'insufficient-material';
-}>;
+export type Result = Readonly<{ winner: Color | null; reason: 'checkmate' | 'stalemate' | 'fifty-moves' | 'threefold' | 'insufficient-material' }>;
