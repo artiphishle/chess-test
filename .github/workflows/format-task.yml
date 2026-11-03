@@ -1,0 +1,33 @@
+name: Normalize task branch
+on:
+  push:
+    branches: [feat/configurable-chess-test]
+permissions:
+  contents: write
+jobs:
+  normalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: bun install
+      - name: Format and fix imports
+        run: |
+          bun run format
+          bun x ankhorage-eslint . --fix || true
+      - name: Commit formatter output
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "style(chess): apply canonical Ankhorage formatting"
+            git push
+          fi
