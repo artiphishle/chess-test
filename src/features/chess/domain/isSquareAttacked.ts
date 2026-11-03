@@ -2,9 +2,11 @@ import type { Board, Color, Piece, Position } from '../../../types/chess.ts';
 
 /*** Determine whether any enemy piece attacks a square, regardless of its own king's safety. */
 export function isSquareAttacked(board: Board, target: Position, attacker: Color): boolean {
-  return board.some((row, y) => row.some((piece, x) =>
-    piece?.color === attacker && pieceAttacks(board, piece, { x, y }, target),
-  ));
+  return board.some((row, y) =>
+    row.some(
+      (piece, x) => piece?.color === attacker && pieceAttacks(board, piece, { x, y }, target),
+    ),
+  );
 }
 
 /*** Check the attack shape for one piece type. */
@@ -25,8 +27,17 @@ function slidingAttacks(board: Board, piece: Piece, from: Position, target: Posi
   const dy = target.y - from.y;
   const straight = (dx === 0 && dy !== 0) || (dy === 0 && dx !== 0);
   const diagonal = Math.abs(dx) === Math.abs(dy) && dx !== 0;
-  const compatible = { P: false, N: false, K: false, R: straight, B: diagonal, Q: straight || diagonal }[piece.kind];
+  const compatible = {
+    P: false,
+    N: false,
+    K: false,
+    R: straight,
+    B: diagonal,
+    Q: straight || diagonal,
+  }[piece.kind];
   if (!compatible) return false;
-  return Array.from({ length: Math.max(Math.abs(dx), Math.abs(dy)) - 1 }, (_, index) => index + 1)
-    .every(step => board[from.y + Math.sign(dy) * step]?.[from.x + Math.sign(dx) * step] == null);
+  return Array.from(
+    { length: Math.max(Math.abs(dx), Math.abs(dy)) - 1 },
+    (_, index) => index + 1,
+  ).every((step) => board[from.y + Math.sign(dy) * step]?.[from.x + Math.sign(dx) * step] == null);
 }

@@ -14,15 +14,46 @@ interface Props {
 }
 
 /*** Render accessible rectangular chess grids with optional black orientation. */
-export function ChessBoard({ cells, width, height, flipped = false, selected, hints = [], disabled = false, onSquare }: Props) {
-  const rows = Array.from({ length: height }, (_, index) => flipped ? height - 1 - index : index);
-  const cols = Array.from({ length: width }, (_, index) => flipped ? width - 1 - index : index);
-  return <div className="board-scroll"><div className="chess-board" role="grid" aria-label={`${width} mal ${height} Schachbrett`}
-    style={{ gridTemplateColumns: `repeat(${width}, minmax(0, 1fr))`, width: `max(100%, ${width * 36}px)`, maxWidth: `${width * 68}px` }}>
-    {rows.flatMap(y => cols.map(x => <Square key={`${x}:${y}`} cell={cells[y]?.[x] ?? null}
-      position={{ x, y }} selected={selected} hinted={hints.some(target => target.x === x && target.y === y)}
-      disabled={disabled} onSquare={onSquare} />))}
-  </div></div>;
+export function ChessBoard({
+  cells,
+  width,
+  height,
+  flipped = false,
+  selected,
+  hints = [],
+  disabled = false,
+  onSquare,
+}: Props) {
+  const rows = Array.from({ length: height }, (_, index) => (flipped ? height - 1 - index : index));
+  const cols = Array.from({ length: width }, (_, index) => (flipped ? width - 1 - index : index));
+  return (
+    <div className="board-scroll">
+      <div
+        className="chess-board"
+        role="grid"
+        aria-label={`${width} mal ${height} Schachbrett`}
+        style={{
+          gridTemplateColumns: `repeat(${width}, minmax(0, 1fr))`,
+          width: `max(100%, ${width * 36}px)`,
+          maxWidth: `${width * 68}px`,
+        }}
+      >
+        {rows.flatMap((y) =>
+          cols.map((x) => (
+            <Square
+              key={`${x}:${y}`}
+              cell={cells[y]?.[x] ?? null}
+              position={{ x, y }}
+              selected={selected}
+              hinted={hints.some((target) => target.x === x && target.y === y)}
+              disabled={disabled}
+              onSquare={onSquare}
+            />
+          )),
+        )}
+      </div>
+    </div>
+  );
 }
 
 interface SquareProps {
@@ -38,18 +69,46 @@ interface SquareProps {
 function Square({ cell, position, selected, hinted, disabled, onSquare }: SquareProps) {
   const { x, y } = position;
   const active = selected?.x === x && selected.y === y;
-  const label = cell?.kind === 'coin' ? `Choice Coin ${cell.options.join('/')}`
-    : cell ? `${cell.color === 'w' ? 'Weiss' : 'Schwarz'} ${cell.kind}` : 'leer';
-  return <button type="button" aria-label={`Feld ${x + 1},${y + 1}: ${label}`} aria-pressed={active}
-    className={`square ${(x + y) % 2 === 0 ? 'light' : 'dark'}${active ? ' selected' : ''}${hinted ? ' legal' : ''}`}
-    disabled={disabled} onClick={() => onSquare(position)}>
-    {cell?.kind === 'coin' ? <span className="coin" title={cell.options.join('/')}>C</span>
-      : cell ? <span className={`chess-piece ${cell.color === 'w' ? 'white-piece' : 'black-piece'}`}>{glyphs[cell.color + cell.kind]}</span> : null}
-    {hinted ? <span className="legal-dot" /> : null}
-  </button>;
+  const label =
+    cell?.kind === 'coin'
+      ? `Choice Coin ${cell.options.join('/')}`
+      : cell
+        ? `${cell.color === 'w' ? 'Weiss' : 'Schwarz'} ${cell.kind}`
+        : 'leer';
+  return (
+    <button
+      type="button"
+      aria-label={`Feld ${x + 1},${y + 1}: ${label}`}
+      aria-pressed={active}
+      className={`square ${(x + y) % 2 === 0 ? 'light' : 'dark'}${active ? ' selected' : ''}${hinted ? ' legal' : ''}`}
+      disabled={disabled}
+      onClick={() => onSquare(position)}
+    >
+      {cell?.kind === 'coin' ? (
+        <span className="coin" title={cell.options.join('/')}>
+          C
+        </span>
+      ) : cell ? (
+        <span className={`chess-piece ${cell.color === 'w' ? 'white-piece' : 'black-piece'}`}>
+          {glyphs[cell.color + cell.kind]}
+        </span>
+      ) : null}
+      {hinted ? <span className="legal-dot" /> : null}
+    </button>
+  );
 }
 
 const glyphs: Readonly<Record<string, string>> = {
-  wK: '♔', wQ: '♕', wR: '♖', wB: '♗', wN: '♘', wP: '♙',
-  bK: '♚', bQ: '♛', bR: '♜', bB: '♝', bN: '♞', bP: '♟',
+  wK: '♔',
+  wQ: '♕',
+  wR: '♖',
+  wB: '♗',
+  wN: '♘',
+  wP: '♙',
+  bK: '♚',
+  bQ: '♛',
+  bR: '♜',
+  bB: '♝',
+  bN: '♞',
+  bP: '♟',
 };

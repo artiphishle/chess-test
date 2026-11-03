@@ -34,10 +34,18 @@ export function useTemplateLibrary(): TemplateLibrary {
     setEditing(false);
   };
   const remove = (id: string): void => {
-    persist(saved.filter(entry => entry.id !== id));
+    persist(saved.filter((entry) => entry.id !== id));
     setTemplate(presets[0]);
   };
-  return { template, templates: [...presets, ...saved], editing, setEditing, setTemplate, save, remove };
+  return {
+    template,
+    templates: [...presets, ...saved],
+    editing,
+    setEditing,
+    setTemplate,
+    save,
+    remove,
+  };
 }
 
 const presets = createPresets();
@@ -47,7 +55,11 @@ function loadSavedTemplates(): readonly Template[] {
   try {
     const parsed = JSON.parse(localStorage.getItem('chess-test-templates') ?? '[]') as unknown;
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((entry): entry is Template =>
-      typeof entry === 'object' && entry !== null && 'id' in entry && 'cells' in entry);
-  } catch { return []; }
+    return parsed.filter(
+      (entry): entry is Template =>
+        typeof entry === 'object' && entry !== null && 'id' in entry && 'cells' in entry,
+    );
+  } catch {
+    return [];
+  }
 }

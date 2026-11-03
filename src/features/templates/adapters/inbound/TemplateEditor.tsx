@@ -17,26 +17,64 @@ interface Props {
 }
 
 /*** Compose independent configuration controls and an editable chessboard. */
-export function TemplateEditor({ template, templates, onSelect, onUpdate, onSave, onDelete }: Props) {
+export function TemplateEditor({
+  template,
+  templates,
+  onSelect,
+  onUpdate,
+  onSave,
+  onDelete,
+}: Props) {
   const [name, setName] = useState(template.name);
   const [palette, setPalette] = useState<Palette>({ type: 'piece', color: 'w', kind: 'P' });
   const place = ({ x, y }: Position): void => {
-    const cell: Cell = palette.type === 'erase' ? null : palette.type === 'coin'
-      ? { kind: 'coin', color: palette.color, options: [...palette.options] }
-      : { kind: palette.kind, color: palette.color };
-    onUpdate({ ...template, cells: template.cells.map((row, rank) => rank === y
-      ? row.map((existing, file) => file === x ? cell : existing) : [...row]) });
+    const cell: Cell =
+      palette.type === 'erase'
+        ? null
+        : palette.type === 'coin'
+          ? { kind: 'coin', color: palette.color, options: [...palette.options] }
+          : { kind: palette.kind, color: palette.color };
+    onUpdate({
+      ...template,
+      cells: template.cells.map((row, rank) =>
+        rank === y ? row.map((existing, file) => (file === x ? cell : existing)) : [...row],
+      ),
+    });
   };
-  return <div className="editor-layout">
-    <section className="panel editor-controls">
-      <EditorSettings template={template} templates={templates} name={name} onName={setName}
-        onSelect={onSelect} onUpdate={onUpdate} onSave={onSave} onDelete={onDelete} />
-      <div className="section-separator" />
-      <EditorPalette active={palette} onSelect={setPalette} />
-    </section>
-    <section className="panel board-panel"><div className="panel-heading"><h2>Startaufstellung</h2><span>{template.width} × {template.height}</span></div>
-      <ChessBoard cells={template.cells} width={template.width} height={template.height} onSquare={place} />
-      <p className="muted">Feld anklicken, um die gewählte Figur oder einen Coin zu setzen. Jede Seite darf freie Figuren und Positionen haben.</p>
-    </section>
-  </div>;
+  return (
+    <div className="editor-layout">
+      <section className="panel editor-controls">
+        <EditorSettings
+          template={template}
+          templates={templates}
+          name={name}
+          onName={setName}
+          onSelect={onSelect}
+          onUpdate={onUpdate}
+          onSave={onSave}
+          onDelete={onDelete}
+        />
+        <div className="section-separator" />
+        <EditorPalette active={palette} onSelect={setPalette} />
+      </section>
+      <section className="panel board-panel">
+        <div className="panel-heading">
+          <h2>Startaufstellung</h2>
+          <span>
+            {template.width} × {template.height}
+          </span>
+        </div>
+        <ChessBoard
+          cells={template.cells}
+          width={template.width}
+          height={template.height}
+          onSquare={place}
+        />
+        <p className="muted">
+          Feld anklicken, um die gewählte Figur oder einen Coin zu setzen. Jede Seite darf freie
+          Figuren und Positionen haben.
+        </p>
+      </section>
+    </div>
+  );
 }

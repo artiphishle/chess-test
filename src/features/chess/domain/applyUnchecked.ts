@@ -8,20 +8,38 @@ export function applyUnchecked(state: GameState, move: Move): GameState {
   const captured = state.board[to.y]?.[to.x] ?? null;
   const enPassantCapture = piece.kind === 'P' && from.x !== to.x && !captured;
   const board = transferPieces(state, move, piece, enPassantCapture);
-  const castling = updateCastling(state.castling, piece, from, to, captured, state.width, state.height);
-  const enPassant = piece.kind === 'P' && Math.abs(to.y - from.y) === 2
-    ? { x: from.x, y: (from.y + to.y) / 2 } : null;
+  const castling = updateCastling(
+    state.castling,
+    piece,
+    from,
+    to,
+    captured,
+    state.width,
+    state.height,
+  );
+  const enPassant =
+    piece.kind === 'P' && Math.abs(to.y - from.y) === 2
+      ? { x: from.x, y: (from.y + to.y) / 2 }
+      : null;
   return {
-    ...state, board, castling, enPassant,
+    ...state,
+    board,
+    castling,
+    enPassant,
     halfmove: piece.kind === 'P' || captured || enPassantCapture ? 0 : state.halfmove + 1,
     turn: piece.color === 'w' ? 'b' : 'w',
   };
 }
 
 /*** Apply basic movement and special captures on a new board matrix. */
-function transferPieces(state: GameState, move: Move, piece: Piece, enPassantCapture: boolean): (Piece | null)[][] {
+function transferPieces(
+  state: GameState,
+  move: Move,
+  piece: Piece,
+  enPassantCapture: boolean,
+): (Piece | null)[][] {
   const { from, to } = move;
-  const board = state.board.map(row => [...row]);
+  const board = state.board.map((row) => [...row]);
   board[from.y][from.x] = null;
   board[to.y][to.x] = { ...piece, kind: move.promotion ?? piece.kind };
   if (enPassantCapture) board[from.y][to.x] = null;
@@ -35,7 +53,15 @@ function transferPieces(state: GameState, move: Move, piece: Piece, enPassantCap
 }
 
 /*** Expire castling rights on king movement, rook movement or corner-rook capture. */
-function updateCastling(rights: Castling, moving: Piece, from: Position, to: Position, target: Piece | null, width: number, height: number): Castling {
+function updateCastling(
+  rights: Castling,
+  moving: Piece,
+  from: Position,
+  to: Position,
+  target: Piece | null,
+  width: number,
+  height: number,
+): Castling {
   const next = { w: { ...rights.w }, b: { ...rights.b } };
   if (moving.kind === 'K') next[moving.color] = { K: false, Q: false };
   const revoke = (color: Color, point: Position) => {
