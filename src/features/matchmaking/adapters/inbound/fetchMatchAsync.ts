@@ -4,6 +4,6 @@ import type { MatchSnapshot } from '../../application/createGameService.ts';
 export async function fetchMatchAsync(): Promise<MatchSnapshot | null> {
   const response = await fetch('/api/game', { cache: 'no-store', credentials: 'same-origin' });
   if (!response.ok) throw new Error('Match polling temporarily unavailable');
-  const data = await response.json() as { match: MatchSnapshot | null };
+  const data = (await response.json()) as { match: MatchSnapshot | null };
   return data.match;
 }

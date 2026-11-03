@@ -18,7 +18,9 @@ interface ActionState {
 }
 
 /*** Build board interactions without mixing state presentation with commands. */
-export function createBoardActions(context: ActionState): Pick<BoardInteraction, 'onSquare' | 'choose' | 'promote'> {
+export function createBoardActions(
+  context: ActionState,
+): Pick<BoardInteraction, 'onSquare' | 'choose' | 'promote'> {
   return {
     onSquare: (position) => handleSquare(context, position),
     choose: (kind) => resolveCoin(context, kind),
@@ -44,17 +46,25 @@ function handleSquare(context: ActionState, position: Position): void {
 /*** Select one friendly piece or apply a legal destination. */
 function handlePlayingSquare(context: ActionState, position: Position): void {
   const { selected, legal, session, setSelected, setPromotion } = context;
-  const match = session.match;
+  const { match } = session;
   if (!match?.state) return;
   const piece = match.state.board.at(position.y)?.at(position.x);
   if (piece?.color === match.color) {
-    setSelected(position); setPromotion(null); return;
+    setSelected(position);
+    setPromotion(null);
+    return;
   }
   if (!selected) return;
-  const moves = legal.filter(move => move.to.x === position.x && move.to.y === position.y);
-  if (moves.length === 0) { setSelected(null); return; }
-  if (moves.some(move => move.promotion)) { setPromotion({ from: selected, to: position }); return; }
-  void session.act({ action: 'move', move: { from: selected, to: position } }).then(ok => {
+  const moves = legal.filter((move) => move.to.x === position.x && move.to.y === position.y);
+  if (moves.length === 0) {
+    setSelected(null);
+    return;
+  }
+  if (moves.some((move) => move.promotion)) {
+    setPromotion({ from: selected, to: position });
+    return;
+  }
+  void session.act({ action: 'move', move: { from: selected, to: position } }).then((ok) => {
     if (ok) setSelected(null);
   });
 }
@@ -63,7 +73,7 @@ function handlePlayingSquare(context: ActionState, position: Position): void {
 function resolveCoin(context: ActionState, kind: PieceKind): void {
   const { activeCoin, session, setActiveCoin } = context;
   if (!activeCoin) return;
-  void session.act({ action: 'choose', x: activeCoin.x, y: activeCoin.y, kind }).then(ok => {
+  void session.act({ action: 'choose', x: activeCoin.x, y: activeCoin.y, kind }).then((ok) => {
     if (ok) setActiveCoin(null);
   });
 }
@@ -72,7 +82,10 @@ function resolveCoin(context: ActionState, kind: PieceKind): void {
 function confirmPromotion(context: ActionState, kind: Move['promotion']): void {
   const { promotion, session, setPromotion, setSelected } = context;
   if (!promotion) return;
-  void session.act({ action: 'move', move: { ...promotion, promotion: kind } }).then(ok => {
-    if (ok) { setPromotion(null); setSelected(null); }
+  void session.act({ action: 'move', move: { ...promotion, promotion: kind } }).then((ok) => {
+    if (ok) {
+      setPromotion(null);
+      setSelected(null);
+    }
   });
 }

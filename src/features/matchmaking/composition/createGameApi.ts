@@ -1,5 +1,5 @@
-import { createApiRuntime } from '@ankhorage/api';
 import type { ApiHandlerResponse, ApiRequest } from '@ankhorage/api';
+import { createApiRuntime } from '@ankhorage/api';
 
 import { getGameService } from './getGameService.ts';
 
@@ -10,11 +10,32 @@ const headers = { 'cache-control': 'private, no-store', 'content-type': 'applica
 export function createGameApi() {
   return createApiRuntime({
     definition: {
-      id: 'chess-test', origin: 'internal', protocol: 'rest', basePath: '/api',
-      endpoints: { game: { id: 'game', kind: 'http', operations: {
-        'game.read': { id: 'game.read', protocol: 'http', intent: 'read', method: 'GET', path: '/game' },
-        'game.write': { id: 'game.write', protocol: 'http', intent: 'action', method: 'POST', path: '/game' },
-      } } },
+      id: 'chess-test',
+      origin: 'internal',
+      protocol: 'rest',
+      basePath: '/api',
+      endpoints: {
+        game: {
+          id: 'game',
+          kind: 'http',
+          operations: {
+            'game.read': {
+              id: 'game.read',
+              protocol: 'http',
+              intent: 'read',
+              method: 'GET',
+              path: '/game',
+            },
+            'game.write': {
+              id: 'game.write',
+              protocol: 'http',
+              intent: 'action',
+              method: 'POST',
+              path: '/game',
+            },
+          },
+        },
+      },
     },
     handlers: { 'game.read': readGame, 'game.write': writeGame },
   });
@@ -28,7 +49,8 @@ function readGame(request: ApiRequest): ApiHandlerResponse {
 
 /*** Apply a validated session command, isolating HTTP details from match state. */
 function writeGame(request: ApiRequest): ApiHandlerResponse {
-  if (!isSameOrigin(request.headers)) return { status: 403, headers, body: { error: 'Origin rejected' } };
+  if (!isSameOrigin(request.headers))
+    return { status: 403, headers, body: { error: 'Origin rejected' } };
   if (!isRecord(request.body) || typeof request.body.action !== 'string') {
     return { status: 400, headers, body: { error: 'Invalid command' } };
   }
@@ -38,30 +60,47 @@ function writeGame(request: ApiRequest): ApiHandlerResponse {
     if (request.body.action === 'join') {
       const joined = service.join(token, request.body.template);
       return {
-        headers: { ...headers, 'set-cookie': `${cookieName}=${joined.token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400${process.env.NODE_ENV === 'production' ? '; Secure' : ''}` },
+        headers: {
+          ...headers,
+          'set-cookie': `${cookieName}=${joined.token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`,
+        },
         body: { match: joined.match },
       };
     }
     if (!token) return { status: 401, headers, body: { error: 'No session' } };
     const match = service.execute(token, request.body as Parameters<typeof service.execute>[1]);
-    const responseHeaders = request.body.action === 'leave' ? { ...headers, 'set-cookie': `${cookieName}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0` } : headers;
+    const responseHeaders =
+      request.body.action === 'leave'
+        ? { ...headers, 'set-cookie': `${cookieName}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0` }
+        : headers;
     return { headers: responseHeaders, body: { match } };
   } catch (error) {
-    return { status: 409, headers, body: { error: error instanceof Error ? error.message : 'Invalid request' } };
+    return {
+      status: 409,
+      headers,
+      body: { error: error instanceof Error ? error.message : 'Invalid request' },
+    };
   }
 }
 
 /*** Reject mismatched request origins without trusting arbitrary forwarded origins. */
 function isSameOrigin(headers: ApiRequest['headers']): boolean {
-  const origin = headers.origin;
+  const { origin } = headers;
   const host = headers['x-forwarded-host'] ?? headers.host;
   if (!origin || !host) return true;
-  try { return new URL(origin).host === host; } catch { return false; }
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
 }
 
 /*** Read an opaque server-generated session token from the HTTP Cookie header. */
 function readToken(cookie: string | undefined): string | undefined {
-  const raw = cookie?.split(';').map(part => part.trim()).find(part => part.startsWith(`${cookieName}=`));
+  const raw = cookie
+    ?.split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${cookieName}=`));
   const token = raw?.slice(cookieName.length + 1);
   return token && /^[a-f0-9-]{36}$/.test(token) ? token : undefined;
 }
