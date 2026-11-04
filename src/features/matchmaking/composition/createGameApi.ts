@@ -6,7 +6,6 @@ import { createApiRuntime } from '@ankhorage/api';
 import { getGameService } from './getGameService.ts';
 
 const cookieName = 'chess_session';
-const tabHeader = 'x-chess-tab-id';
 const headers = { 'cache-control': 'private, no-store', 'content-type': 'application/json' };
 
 /*** Bind the chess HTTP operations to the portable Ankhorage API runtime. */
@@ -57,7 +56,7 @@ function writeGame(request: ApiRequest): ApiHandlerResponse {
   if (!isRecord(request.body) || typeof request.body.action !== 'string') {
     return { status: 400, headers, body: { error: 'Invalid command' } };
   }
-  const tabId = readTabId(request.headers[tabHeader]);
+  const tabId = readTabId(request.headers['x-chess-tab-id']);
   if (!tabId) return { status: 400, headers, body: { error: 'Missing tab identity' } };
   const service = getGameService();
   const browserId = readToken(request.headers.cookie);
@@ -76,7 +75,10 @@ function writeGame(request: ApiRequest): ApiHandlerResponse {
       };
     }
     if (!browserId) return { status: 401, headers, body: { error: 'No session' } };
-    const match = service.execute(`${browserId}:${tabId}`, request.body as Parameters<typeof service.execute>[1]);
+    const match = service.execute(
+      `${browserId}:${tabId}`,
+      request.body as Parameters<typeof service.execute>[1],
+    );
     return { headers, body: { match } };
   } catch (error) {
     return {
@@ -117,7 +119,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 /*** Scope one anonymous player to a valid shared browser cookie and a unique tab identifier. */
 function readIdentity(headerValues: ApiRequest['headers']): string | undefined {
   const browserId = readToken(headerValues.cookie);
-  const tabId = readTabId(headerValues[tabHeader]);
+  const tabId = readTabId(headerValues['x-chess-tab-id']);
   return browserId && tabId ? `${browserId}:${tabId}` : undefined;
 }
 

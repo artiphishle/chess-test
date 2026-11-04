@@ -24,11 +24,13 @@ export function SetupSidebar({ session }: Props) {
     <>
       <h2>Deine Choice Coins</h2>
       <p className="muted">
-        Tippe auf einen Deiner offenen Coins auf dem Brett. Wähle die Figur im Dialog.
-        Bereits eingesetzte Figuren bleiben für diese Partie fixiert.
+        Tippe auf einen Deiner offenen Coins auf dem Brett. Wähle die Figur im Dialog. Bereits
+        eingesetzte Figuren bleiben für diese Partie fixiert.
       </p>
       <div className="ready-status">
-        <strong>{resolved} / {coins.length} Figuren gewählt</strong>
+        <strong>
+          {resolved} / {coins.length} Figuren gewählt
+        </strong>
         <div>Du: {ownReady ? 'Bereit ✓' : 'Wählst Figuren'}</div>
         <div>Gegner: {opponentReady ? 'Bereit ✓' : 'Wählt Figuren'}</div>
       </div>

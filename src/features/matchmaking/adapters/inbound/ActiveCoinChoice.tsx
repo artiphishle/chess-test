@@ -24,12 +24,20 @@ export function ActiveCoinChoice({ match, interaction, busy }: Props) {
     coin?.kind !== 'coin' ||
     coin.color !== match.color ||
     Object.hasOwn(match.choices, `${selected.x}:${selected.y}`)
-  ) return null;
+  )
+    return null;
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Choice Coin Figur wählen">
+    <div
+      className="modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Choice Coin Figur wählen"
+    >
       <div className="result-modal coin-modal">
-        <span className="eyebrow">CHOICE COIN · {selected.x + 1} / {selected.y + 1}</span>
+        <span className="eyebrow">
+          CHOICE COIN · {selected.x + 1} / {selected.y + 1}
+        </span>
         <h2>Figur wählen</h2>
         <p>Welche Figur soll auf diesem Feld stehen?</p>
         <div className="coin-option-grid">
@@ -42,7 +50,7 @@ export function ActiveCoinChoice({ match, interaction, busy }: Props) {
               onClick={() => interaction.choose(kind)}
             >
               <ChessPiece piece={{ color: match.color, kind }} />
-              <span>{pieceNames[kind]}</span>
+              <span>{pieceName(kind)}</span>
             </button>
           ))}
         </div>
@@ -54,11 +62,20 @@ export function ActiveCoinChoice({ match, interaction, busy }: Props) {
   );
 }
 
-const pieceNames: Readonly<Record<PieceKind, string>> = {
-  P: 'Bauer',
-  N: 'Springer',
-  B: 'Läufer',
-  R: 'Turm',
-  Q: 'Dame',
-  K: 'König',
-};
+/*** Label the six standard pieces without trusting dynamic object keys. */
+function pieceName(kind: PieceKind): string {
+  switch (kind) {
+    case 'P':
+      return 'Bauer';
+    case 'N':
+      return 'Springer';
+    case 'B':
+      return 'Läufer';
+    case 'R':
+      return 'Turm';
+    case 'Q':
+      return 'Dame';
+    case 'K':
+      return 'König';
+  }
+}

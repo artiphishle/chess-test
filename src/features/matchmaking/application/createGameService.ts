@@ -175,15 +175,7 @@ class InProcessGameService {
     const key = `${x}:${y}`;
     if (Object.hasOwn(choices, key)) throw new Error('Coin already resolved');
     Object.assign(choices, { [key]: kind });
-    const unresolved = match.template.cells.some((row, rowY) =>
-      row.some(
-        (candidate, colX) =>
-          candidate?.kind === 'coin' &&
-          candidate.color === color &&
-          !Object.hasOwn(choices, `${colX}:${rowY}`),
-      ),
-    );
-    if (!unresolved) {
+    if (areAllCoinsResolved(match.template, color, choices)) {
       if (color === 'w') match.ready.w = true;
       else match.ready.b = true;
       if (match.ready.w && match.ready.b) this.start(match);
@@ -261,4 +253,20 @@ function opposite(color: Color): Color {
 /*** Read the current player's ready flag without computed-property access. */
 function isReady(ready: Readonly<Record<Color, boolean>>, color: Color): boolean {
   return color === 'w' ? ready.w : ready.b;
+}
+
+/*** Detect completion of only the acting player's unresolved choice coins. */
+function areAllCoinsResolved(
+  template: Template,
+  color: Color,
+  choices: Readonly<Record<string, PieceKind>>,
+): boolean {
+  return template.cells.every((row, y) =>
+    row.every(
+      (cell, x) =>
+        cell?.kind !== 'coin' ||
+        cell.color !== color ||
+        Object.hasOwn(choices, `${x}:${y}`),
+    ),
+  );
 }
