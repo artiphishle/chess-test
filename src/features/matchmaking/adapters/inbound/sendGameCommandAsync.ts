@@ -1,4 +1,5 @@
 import type { MatchSnapshot } from '../../application/createGameService.ts';
+import { getPlayerTabId } from './getPlayerTabId.ts';
 
 /*** Post one chess command with the current anonymous browser session cookie. */
 export async function sendGameCommandAsync(
@@ -6,7 +7,7 @@ export async function sendGameCommandAsync(
 ): Promise<MatchSnapshot | null> {
   const response = await fetch('/api/game', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', 'x-chess-tab-id': getPlayerTabId() },
     credentials: 'same-origin',
     body: JSON.stringify(command),
   });

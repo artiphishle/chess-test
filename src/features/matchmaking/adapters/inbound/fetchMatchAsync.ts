@@ -1,8 +1,13 @@
 import type { MatchSnapshot } from '../../application/createGameService.ts';
+import { getPlayerTabId } from './getPlayerTabId.ts';
 
 /*** Refresh the current anonymous player's session without a cache. */
 export async function fetchMatchAsync(): Promise<MatchSnapshot | null> {
-  const response = await fetch('/api/game', { cache: 'no-store', credentials: 'same-origin' });
+  const response = await fetch('/api/game', {
+    cache: 'no-store',
+    credentials: 'same-origin',
+    headers: { 'x-chess-tab-id': getPlayerTabId() },
+  });
   if (!response.ok) throw new Error('Match polling temporarily unavailable');
   const data = (await response.json()) as { match: MatchSnapshot | null };
   return data.match;
