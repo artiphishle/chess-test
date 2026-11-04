@@ -13,7 +13,7 @@ export async function fetchMatchAsync(): Promise<{
   });
   if (!response.ok) throw new Error('Match polling temporarily unavailable');
   return (await response.json()) as {
-    match: MatchSnapshot | null;
+    matches: readonly MatchSnapshot[];
     lobby: readonly LobbyMatch[];
   };
 }
