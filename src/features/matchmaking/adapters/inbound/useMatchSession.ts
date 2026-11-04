@@ -1,14 +1,17 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import type { LobbyMatch, MatchSnapshot } from '../../application/createGameService.ts';
-import { fetchMatchAsync } from './fetchMatchAsync.ts';
 import { sendGameCommandAsync } from './sendGameCommandAsync.ts';
+import { useMatchPolling } from './useMatchPolling.ts';
 
 export interface MatchSession {
   readonly match: MatchSnapshot | null;
+  readonly matches: readonly MatchSnapshot[];
   readonly lobby: readonly LobbyMatch[];
+  readonly activeId: string | null;
+  readonly selectMatch: (matchId: string | null) => void;
   readonly busy: boolean;
   readonly error: string;
   readonly clearError: () => void;
@@ -16,53 +19,57 @@ export interface MatchSession {
   readonly leave: () => Promise<void>;
 }
 
-/*** Poll and mutate the current player's authoritative server session. */
+/*** Bind match-scoped actions to the selected tab while keeping the lobby independent. */
 export function useMatchSession(): MatchSession {
-  const [match, setMatch] = useState<MatchSnapshot | null>(null);
-  const [lobby, setLobby] = useState<readonly LobbyMatch[]>([]);
-  const mutationGeneration = useRef(0);
+  const polling = useMatchPolling();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const refresh = useCallback(async () => {
-    try {
-      const generation = mutationGeneration.current;
-      const current = await fetchMatchAsync();
-      if (generation !== mutationGeneration.current) return;
-      setMatch(current.match);
-      setLobby(current.lobby);
-    } catch {
-      /* A transient polling failure must not discard the active match. */
-    }
-  }, []);
-  useEffect(() => {
-    const initial = window.setTimeout(() => void refresh(), 0);
-    const interval = window.setInterval(() => void refresh(), 1200);
-    return () => {
-      window.clearTimeout(initial);
-      window.clearInterval(interval);
-    };
-  }, [refresh]);
   const act = useCallback(
     async (command: Record<string, unknown>): Promise<boolean> => {
-      mutationGeneration.current += 1;
+      const matchId = typeof command.matchId === 'string' ? command.matchId : polling.activeId;
+      const payload =
+        command.action === 'create' || command.action === 'join'
+          ? command
+          : { ...command, matchId };
+      polling.beginMutation();
       setBusy(true);
       setError('');
       try {
-        setMatch(await sendGameCommandAsync(command));
-        await refresh();
+        const match = await sendGameCommandAsync(payload);
+        if (command.action === 'join' && match) polling.setActiveId(match.id);
+        if (command.action === 'leave') {
+          polling.setMatches((previous) => previous.filter((entry) => entry.id !== matchId));
+          polling.setActiveId((current) => (current === matchId ? null : current));
+        } else if (match) {
+          polling.setMatches((previous) => [
+            ...previous.filter((entry) => entry.id !== match.id),
+            match,
+          ]);
+        }
         return true;
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : 'Verbindung fehlgeschlagen');
-        await refresh();
         return false;
       } finally {
         setBusy(false);
+        polling.endMutation();
       }
     },
-    [refresh],
+    [polling],
   );
   const leave = useCallback(async (): Promise<void> => {
     await act({ action: 'leave' });
   }, [act]);
-  return { match, lobby, busy, error, clearError: () => setError(''), act, leave };
+  return {
+    match: polling.matches.find((entry) => entry.id === polling.activeId) ?? null,
+    matches: polling.matches,
+    lobby: polling.lobby,
+    activeId: polling.activeId,
+    selectMatch: polling.setActiveId,
+    busy,
+    error,
+    clearError: () => setError(''),
+    act,
+    leave,
+  };
 }
