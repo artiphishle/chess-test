@@ -7,6 +7,20 @@ import { pieceSetContext } from './pieceSetContext.ts';
 
 const storageKey = 'chess-test-piece-set';
 
+/*** Store a local SVG style without changing the server-authoritative chess configuration. */
+export function PieceSetProvider({ children }: { readonly children: ReactNode }) {
+  const pieceSet = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const selectPieceSet = useCallback((next: PieceSet) => {
+    window.localStorage.setItem(storageKey, next);
+    window.dispatchEvent(new Event(storageKey));
+  }, []);
+  return (
+    <pieceSetContext.Provider value={{ pieceSet, selectPieceSet }}>
+      {children}
+    </pieceSetContext.Provider>
+  );
+}
+
 /*** Read persisted piece art with a safe default for server-side rendering. */
 function getSnapshot(): PieceSet {
   const stored = window.localStorage.getItem(storageKey);
@@ -29,18 +43,4 @@ function subscribe(listener: () => void): () => void {
     window.removeEventListener('storage', onStorage);
     window.removeEventListener(storageKey, listener);
   };
-}
-
-/*** Store a local SVG style without changing the server-authoritative chess configuration. */
-export function PieceSetProvider({ children }: { readonly children: ReactNode }) {
-  const pieceSet = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const selectPieceSet = useCallback((next: PieceSet) => {
-    window.localStorage.setItem(storageKey, next);
-    window.dispatchEvent(new Event(storageKey));
-  }, []);
-  return (
-    <pieceSetContext.Provider value={{ pieceSet, selectPieceSet }}>
-      {children}
-    </pieceSetContext.Provider>
-  );
 }
