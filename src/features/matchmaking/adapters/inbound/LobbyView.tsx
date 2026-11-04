@@ -12,15 +12,17 @@ interface Props {
   readonly busy: boolean;
   readonly onPlay: () => void;
   readonly lobby: MatchSession['lobby'];
+  readonly mine: MatchSession['matches'];
+  readonly onCancel: (matchId: string) => void;
   readonly onJoin: (matchId: string) => void;
 }
 
 /*** Present a lobby board preview or the unlocked template editor before joining. */
-export function LobbyView({ library, busy, onPlay, lobby, onJoin }: Props) {
+export function LobbyView({ library, busy, onPlay, lobby, mine, onJoin, onCancel }: Props) {
   return (
     <>
       <LobbyHero library={library} busy={busy} onPlay={onPlay} />
-      <OpenMatches matches={lobby} busy={busy} onJoin={onJoin} />
+      <OpenMatches matches={lobby} mine={mine} busy={busy} onJoin={onJoin} onCancel={onCancel} />
       {library.editing ? (
         <TemplateEditor
           template={library.template}
