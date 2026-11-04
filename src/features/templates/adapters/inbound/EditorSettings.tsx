@@ -109,7 +109,14 @@ export function EditorSettings({
       <div className="section-separator" />
       <label className="field-label">
         Name der Vorlage
-        <input maxLength={100} value={name} onChange={(event) => onName(event.target.value)} />
+        <input
+          maxLength={100}
+          value={name}
+          onChange={(event) => {
+            onName(event.target.value);
+            onUpdate({ ...template, name: event.target.value || template.name });
+          }}
+        />
       </label>
       <div className="action-row">
         <Button onPress={() => onSave(name.trim() || 'Eigene Vorlage')}>Vorlage speichern</Button>
