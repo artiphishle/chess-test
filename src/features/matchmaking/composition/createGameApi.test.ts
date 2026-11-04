@@ -61,7 +61,7 @@ void test('two same-browser tabs pair as White and Black while Safari waits', as
   assert.equal(blackMatch.id, whiteMatch.id);
   assert.equal(games(await get(cookieChrome, chromeTab1))[0]?.color, 'w');
   assert.equal(games(await get(cookieChrome, chromeTab2))[0]?.color, 'b');
-  assert.equal(games(await get(cookieSafari, safariTab)), []);
+  assert.deepEqual(games(await get(cookieSafari, safariTab)), []);
 
   const spectator = await post(cookieSafari, safariTab, { action: 'create', template: preset });
   assert.equal(match(spectator)?.phase, 'waiting');
@@ -79,7 +79,13 @@ void test('only the correct tab moves its own color, with alternating turns', as
   const moveBlack = { from: { x: 4, y: 1 }, to: { x: 4, y: 3 } };
 
   assert.equal(
-    (await post(cookieSecondMatch, chromeTab2, { action: 'move', matchId: created.id, move: moveBlack })).status,
+    (
+      await post(cookieSecondMatch, chromeTab2, {
+        action: 'move',
+        matchId: created.id,
+        move: moveBlack,
+      })
+    ).status,
     409,
   );
   const white = await post(cookieSecondMatch, chromeTab1, {
@@ -98,14 +104,18 @@ void test('only the correct tab moves its own color, with alternating turns', as
   assert.equal(match(black)?.state?.turn, 'w');
   assert.equal(games(await get(cookieSecondMatch, chromeTab1))[0]?.state?.board[3][4]?.color, 'b');
 
-  assert.equal(games(await get(cookieSafari, chromeTab1)), []);
+  assert.deepEqual(games(await get(cookieSafari, chromeTab1)), []);
   const stolen = await post(cookieSafari, chromeTab1, {
     action: 'move',
+    matchId: created.id,
     move: moveWhite,
   });
   assert.equal(stolen.status, 409);
 
-  const departure = await post(cookieSecondMatch, chromeTab1, { action: 'leave', matchId: created.id });
+  const departure = await post(cookieSecondMatch, chromeTab1, {
+    action: 'leave',
+    matchId: created.id,
+  });
   assert.equal(departure.status, 200);
   assert.equal(departure.headers['set-cookie'], undefined);
   assert.equal(games(await get(cookieSecondMatch, chromeTab2))[0]?.result?.winner, 'b');
@@ -166,7 +176,6 @@ void test('public lobby lists multiple 10x13 offers and grants only the first cl
   await post(cookieA, chromeTab1, { action: 'leave', matchId: offerA.id });
   await post(cookieB, chromeTab1, { action: 'leave', matchId: offerB.id });
   await post(cookieC, chromeTab1, { action: 'leave', matchId: offerA.id });
-
 });
 
 void test('one tab owns three offers and receives multiple match tabs after separate guests join', async () => {
@@ -197,8 +206,14 @@ void test('one tab owns three offers and receives multiple match tabs after sepa
     move: { from: { x: 4, y: 6 }, to: { x: 4, y: 4 } },
   });
   assert.equal(played.status, 200);
-  assert.equal(games(await get(host, chromeTab1)).find((entry) => entry.id === ids[0])?.state?.turn, 'b');
-  assert.equal(games(await get(host, chromeTab1)).find((entry) => entry.id === ids[1])?.phase, 'setup');
+  assert.equal(
+    games(await get(host, chromeTab1)).find((entry) => entry.id === ids[0])?.state?.turn,
+    'b',
+  );
+  assert.equal(
+    games(await get(host, chromeTab1)).find((entry) => entry.id === ids[1])?.phase,
+    'setup',
+  );
   await post(host, chromeTab1, { action: 'leave', matchId: ids[2] });
   assert.equal(games(await get(host, chromeTab1)).length, 2);
   await post(host, chromeTab1, { action: 'leave', matchId: ids[0] });
