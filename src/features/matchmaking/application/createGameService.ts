@@ -6,7 +6,8 @@ import { validateTemplate } from '../../templates/domain/validateTemplate.ts';
 
 type Phase = 'waiting' | 'setup' | 'playing' | 'finished';
 type Command =
-  | { action: 'join'; template: unknown }
+  | { action: 'create'; template: unknown }
+  | { action: 'join'; matchId: string }
   | { action: 'choose'; x: number; y: number; kind: PieceKind }
   | { action: 'move'; move: Move }
   | { action: 'resign' }
@@ -26,6 +27,15 @@ interface Match {
   result: FinishReason | null;
   createdAt: number;
 }
+export interface LobbyMatch {
+  readonly id: string;
+  readonly name: string;
+  readonly width: number;
+  readonly height: number;
+  readonly coins: number;
+  readonly createdAt: number;
+}
+
 export interface MatchSnapshot {
   readonly id: string;
   readonly color: Color;
@@ -48,7 +58,6 @@ export function createGameService(ids: () => string, clock: () => number = Date.
 class InProcessGameService {
   private readonly matches = new Map<string, Match>();
   private readonly sessions = new Map<string, string>();
-  private readonly queue: string[] = [];
   private readonly ids: () => string;
   private readonly clock: () => number;
   constructor(ids: () => string, clock: () => number) {
@@ -68,6 +77,7 @@ class InProcessGameService {
 
   /*** Read a player-specific snapshot without leaking an opponent's unresolved choices. */
   snapshot(token: string): MatchSnapshot | null {
+    this.expireWaiting();
     const active = this.resolve(token);
     if (!active) return null;
     const { match, color } = active;
@@ -85,8 +95,33 @@ class InProcessGameService {
     };
   }
 
-  /*** Pair the oldest live waiting player, or queue a locked template copy. */
-  join(
+  /*** Drop expired waiting offers and release their session identities. */
+  private expireWaiting(): void {
+    for (const [id, match] of this.matches) {
+      if (match.phase !== 'waiting' || this.clock() - match.createdAt < 900_000) continue;
+      this.matches.delete(id);
+      this.sessions.delete(match.white);
+    }
+  }
+
+  /*** Read only public offers, without exposing any player or unresolved-coin identities. */
+  lobby(): readonly LobbyMatch[] {
+    this.expireWaiting();
+    return [...this.matches.values()]
+      .filter((match) => match.phase === 'waiting' && match.black === null)
+      .sort((a, b) => a.createdAt - b.createdAt)
+      .map((match) => ({
+        id: match.id,
+        name: match.template.name,
+        width: match.template.width,
+        height: match.template.height,
+        coins: match.template.cells.flat().filter((cell) => cell?.kind === 'coin').length,
+        createdAt: match.createdAt,
+      }));
+  }
+
+  /*** Create a distinct public offer from an immutable validated template snapshot. */
+  create(
     previousToken: string | undefined,
     proposedTemplate: unknown,
   ): { token: string; match: MatchSnapshot } {
@@ -96,43 +131,48 @@ class InProcessGameService {
     }
     const template = validateTemplate(proposedTemplate);
     const token = previousToken ?? this.ids();
-    const waiting = this.queue
-      .map((id) => this.matches.get(id))
-      .find(
-        (match) =>
-          match?.phase === 'waiting' &&
-          match.black === null &&
-          this.clock() - match.createdAt < 900_000,
-      );
-    if (waiting) {
-      waiting.black = token;
-      this.sessions.set(token, waiting.id);
-      this.setup(waiting);
-    } else {
-      const match: Match = {
-        id: this.ids(),
-        white: token,
-        black: null,
-        template,
-        phase: 'waiting',
-        choices: { w: {}, b: {} },
-        ready: { w: false, b: false },
-        rematch: { w: false, b: false },
-        state: null,
-        result: null,
-        createdAt: this.clock(),
-      };
-      this.matches.set(match.id, match);
-      this.queue.push(match.id);
-      this.sessions.set(token, match.id);
-    }
+    const match: Match = {
+      id: this.ids(),
+      white: token,
+      black: null,
+      template,
+      phase: 'waiting',
+      choices: { w: {}, b: {} },
+      ready: { w: false, b: false },
+      rematch: { w: false, b: false },
+      state: null,
+      result: null,
+      createdAt: this.clock(),
+    };
+    this.matches.set(match.id, match);
+    this.sessions.set(token, match.id);
     const snapshot = this.snapshot(token);
     if (!snapshot) throw new Error('Could not create a match');
     return { token, match: snapshot };
   }
 
+  /*** Claim the named waiting game exactly once in the authoritative process. */
+  join(previousToken: string | undefined, matchId: string): { token: string; match: MatchSnapshot } {
+    if (previousToken) {
+      const previous = this.snapshot(previousToken);
+      if (previous) return { token: previousToken, match: previous };
+    }
+    this.expireWaiting();
+    const waiting = this.matches.get(matchId);
+    if (!waiting || waiting.phase !== 'waiting' || waiting.black !== null)
+      throw new Error('Partie nicht mehr verfügbar');
+    const token = previousToken ?? this.ids();
+    if (waiting.white === token) throw new Error('Eigene Partie kann nicht beigetreten werden');
+    waiting.black = token;
+    this.sessions.set(token, waiting.id);
+    this.setup(waiting);
+    const snapshot = this.snapshot(token);
+    if (!snapshot) throw new Error('Could not join the match');
+    return { token, match: snapshot };
+  }
+
   /*** Route a player-authorized command to one strictly scoped transition. */
-  execute(token: string, command: Exclude<Command, { action: 'join' }>): MatchSnapshot | null {
+  execute(token: string, command: Exclude<Command, { action: 'create' | 'join' }>): MatchSnapshot | null {
     const active = this.resolve(token);
     if (!active) throw new Error('No active session');
     const { match, color } = active;
