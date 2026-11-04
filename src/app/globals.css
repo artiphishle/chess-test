@@ -789,7 +789,9 @@ footer span {
   box-shadow: inset 0 0 0 4px #ff303d;
 }
 .square.in-check.selected {
-  box-shadow: inset 0 0 0 4px #ff303d, inset 0 0 0 7px #ffdf85;
+  box-shadow:
+    inset 0 0 0 4px #ff303d,
+    inset 0 0 0 7px #ffdf85;
 }
 .square.in-check::after {
   content: '!';
