@@ -11,9 +11,9 @@ export function WaitingSidebar({ leave }: Props) {
   return (
     <>
       <div className="pulsing-icon">♟</div>
-      <h2>Gegner gesucht …</h2>
+      <h2>Partie in der Lobby</h2>
       <p className="muted">
-        Die nächste Person, die auf «Spielen» klickt, spielt mit Deiner Startkonfiguration.
+        Deine Startaufstellung ist gesperrt. Andere Spieler sehen das Angebot in der Lobby und können beitreten.
       </p>
       <Button
         variant="outline"
@@ -21,7 +21,7 @@ export function WaitingSidebar({ leave }: Props) {
           void leave();
         }}
       >
-        Suche abbrechen
+        Partie zurückziehen
       </Button>
     </>
   );
