@@ -104,13 +104,7 @@ interface SquarePresentation {
 }
 
 /*** Keep checked-king accessibility labels consistent with the square's visual status. */
-function getSquarePresentation({
-  cell,
-  position,
-  active,
-  hinted,
-  checked,
-}: SquarePresentation) {
+function getSquarePresentation({ cell, position, active, hinted, checked }: SquarePresentation) {
   const { x, y } = position;
   const pieceLabel =
     cell?.kind === 'coin'

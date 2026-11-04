@@ -6,9 +6,8 @@ export function getCheckedKingPositions(board: Board): readonly Position[] {
   return board.flatMap((row, y) =>
     row.flatMap((piece, x) => {
       if (piece?.kind !== 'K') return [];
-      return isSquareAttacked(board, { x, y }, piece.color === 'w' ? 'b' : 'w')
-        ? [{ x, y }]
-        : [];
+      const attacked = isSquareAttacked(board, { x, y }, piece.color === 'w' ? 'b' : 'w');
+      return attacked ? [{ x, y }] : [];
     }),
   );
 }
