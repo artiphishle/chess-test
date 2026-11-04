@@ -23,7 +23,11 @@ export function ChessApp() {
         <main className="app-shell">
           <AppHeader match={session.match} error={session.error} clearError={session.clearError} />
           <div className="page-content">
-            <MatchTabs matches={session.matches} activeId={session.activeId} onSelect={session.selectMatch} />
+            <MatchTabs
+              matches={session.matches}
+              activeId={session.activeId}
+              onSelect={session.selectMatch}
+            />
             {session.match ? (
               <ActiveMatchContent key={session.match.id} session={session} />
             ) : (
@@ -56,7 +60,7 @@ export function ChessApp() {
 /*** Reset transient board selection when switching between unrelated game tabs. */
 function ActiveMatchContent({ session }: { readonly session: ReturnType<typeof useMatchSession> }) {
   const interaction = useBoardInteraction(session);
-  const match = session.match;
+  const { match } = session;
   if (!match) return null;
   return (
     <>
