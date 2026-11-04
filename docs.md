@@ -13,3 +13,9 @@ Tests: `bun run test` runs domain and matchmaking **unit tests only**; `bun run 
 ## Anonymous browser-tab identity
 
 Each tab uses a random UUID persisted in tab-local session storage and sent as an `x-chess-tab-id` header. The server combines it with a shared HttpOnly browser cookie, so Chrome Tab 1 and Chrome Tab 2 can join as different opponents even though they share cookies. Reloading a tab preserves its seat; joining from a third independent tab starts the next waiting game. Leaving a match never deletes the browser cookie (which may still be needed by another tab). The session header is not an authentication credential by itself and cannot access matches belonging to a different browser cookie.
+
+## Piece artwork and mobile readability
+
+Chess pieces use scalable SVGs instead of device-dependent Unicode chess fonts on all boards and inside the Choice Coin selection dialog. The header's **Figuren** picker switches the visual style per browser; it does not change a locked match configuration.
+
+The default bundled **Chessnut** pieces are from [Lichess](https://github.com/lichess-org/lila/tree/master/public/piece/chessnut), with an Apache License 2.0 attribution to Alexis Luengas. The optional **Alpha** and **Companion** styles are referenced directly from Lichess' upstream GitHub repository, not redistributed here. Upstream lists Alpha as personal noncommercial use and Companion as freeware with no clear open-source redistribution grant; confirm permission with the authors before any commercial use. Chessnut is the supported offline visual style.

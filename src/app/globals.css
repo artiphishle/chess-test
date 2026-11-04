@@ -246,23 +246,14 @@ select:focus-visible {
 .square.legal {
   box-shadow: inset 0 0 0 3px #c1dca0;
 }
-.chess-piece {
-  font-family: 'Segoe UI Symbol', 'DejaVu Sans', serif;
-  font-size: clamp(16px, 3.6vw, 48px);
-  line-height: 1;
-  position: relative;
-  z-index: 1;
-}
-.white-piece {
-  color: #fffaf1;
-  text-shadow:
-    0 2px 2px #152320,
-    1px 1px 1px #14201d,
-    -1px -1px #243d32;
-}
-.black-piece {
-  color: #152a2a;
-  text-shadow: 0 1px 2px #e5e9de;
+.chess-piece-image {
+  display: block;
+  width: 96%;
+  height: 96%;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1px #07121966);
 }
 .coin {
   position: relative;
@@ -604,5 +595,66 @@ footer span {
   }
   .board-footer {
     font-size: 11px;
+  }
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.piece-set-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.piece-set-select select {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: 8px;
+  padding: 8px;
+  color: var(--text);
+}
+.coin-modal {
+  width: min(520px, 100%);
+}
+.coin-option-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+  gap: 10px;
+}
+.coin-option {
+  background: #233341;
+  border: 1px solid #445766;
+  color: var(--text);
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+}
+.coin-option .chess-piece-image {
+  width: 66px;
+  height: 66px;
+}
+.coin-option:hover,
+.coin-option:focus-visible {
+  border-color: var(--accent);
+  background: #314a46;
+}
+@media (max-width: 540px) {
+  .app-header {
+    flex-wrap: wrap;
+  }
+  .header-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .coin-modal {
+    padding: 22px;
   }
 }
