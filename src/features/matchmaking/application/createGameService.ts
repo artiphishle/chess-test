@@ -57,7 +57,7 @@ export function createGameService(ids: () => string, clock: () => number = Date.
 /*** Isolate mutable session mappings at the application boundary. */
 class InProcessGameService {
   private readonly matches = new Map<string, Match>();
-  private readonly sessions = new Map<string, string>();
+  private readonly sessions = new Map<string, Set<string>>();
   private readonly ids: () => string;
   private readonly clock: () => number;
   constructor(ids: () => string, clock: () => number) {
@@ -65,20 +65,42 @@ class InProcessGameService {
     this.clock = clock;
   }
 
-  /*** Resolve only the player whose opaque session token matches a current participant. */
-  private resolve(token: string): { match: Match; color: Color } | null {
-    const id = this.sessions.get(token);
-    const match = id ? this.matches.get(id) : undefined;
+  /*** Link one anonymous participant to a specific game without replacing other seats. */
+  private addSession(token: string, matchId: string): void {
+    const joined = this.sessions.get(token) ?? new Set<string>();
+    joined.add(matchId);
+    this.sessions.set(token, joined);
+  }
+
+  /*** Release a single game association while keeping the player's other games. */
+  private removeSession(token: string, matchId: string): void {
+    const joined = this.sessions.get(token);
+    joined?.delete(matchId);
+    if (joined?.size === 0) this.sessions.delete(token);
+  }
+
+  /*** Resolve only an authorized participant in the specifically requested match. */
+  private resolve(token: string, matchId: string): { match: Match; color: Color } | null {
+    if (!this.sessions.get(token)?.has(matchId)) return null;
+    const match = this.matches.get(matchId);
     if (!match) return null;
     if (match.white === token) return { match, color: 'w' };
     if (match.black === token) return { match, color: 'b' };
     return null;
   }
 
-  /*** Read a player-specific snapshot without leaking an opponent's unresolved choices. */
-  snapshot(token: string): MatchSnapshot | null {
+  /*** Return every game authorized for this player, including waiting offers. */
+  games(token: string): readonly MatchSnapshot[] {
     this.expireWaiting();
-    const active = this.resolve(token);
+    return [...(this.sessions.get(token) ?? [])].flatMap((matchId) => {
+      const match = this.snapshot(token, matchId);
+      return match ? [match] : [];
+    });
+  }
+
+  /*** Return one player-scoped snapshot without leaking the rival's private coin choices. */
+  snapshot(token: string, matchId: string): MatchSnapshot | null {
+    const active = this.resolve(token, matchId);
     if (!active) return null;
     const { match, color } = active;
     return {
@@ -100,7 +122,7 @@ class InProcessGameService {
     for (const [id, match] of this.matches) {
       if (match.phase !== 'waiting' || this.clock() - match.createdAt < 900_000) continue;
       this.matches.delete(id);
-      this.sessions.delete(match.white);
+      this.removeSession(match.white, id);
     }
   }
 
@@ -125,10 +147,6 @@ class InProcessGameService {
     previousToken: string | undefined,
     proposedTemplate: unknown,
   ): { token: string; match: MatchSnapshot } {
-    if (previousToken) {
-      const previous = this.snapshot(previousToken);
-      if (previous) return { token: previousToken, match: previous };
-    }
     const template = validateTemplate(proposedTemplate);
     const token = previousToken ?? this.ids();
     const match: Match = {
@@ -145,8 +163,8 @@ class InProcessGameService {
       createdAt: this.clock(),
     };
     this.matches.set(match.id, match);
-    this.sessions.set(token, match.id);
-    const snapshot = this.snapshot(token);
+    this.addSession(token, match.id);
+    const snapshot = this.snapshot(token, match.id);
     if (!snapshot) throw new Error('Could not create a match');
     return { token, match: snapshot };
   }
@@ -156,20 +174,21 @@ class InProcessGameService {
     previousToken: string | undefined,
     matchId: string,
   ): { token: string; match: MatchSnapshot } {
-    if (previousToken) {
-      const previous = this.snapshot(previousToken);
-      if (previous) return { token: previousToken, match: previous };
-    }
     this.expireWaiting();
     const waiting = this.matches.get(matchId);
+    if (previousToken && waiting?.white === previousToken)
+      throw new Error('Eigene Partie kann nicht beigetreten werden');
+    if (previousToken) {
+      const previous = this.snapshot(previousToken, matchId);
+      if (previous) return { token: previousToken, match: previous };
+    }
     if (waiting?.phase !== 'waiting' || waiting.black !== null)
       throw new Error('Partie nicht mehr verfügbar');
     const token = previousToken ?? this.ids();
-    if (waiting.white === token) throw new Error('Eigene Partie kann nicht beigetreten werden');
     waiting.black = token;
-    this.sessions.set(token, waiting.id);
+    this.addSession(token, waiting.id);
     this.setup(waiting);
-    const snapshot = this.snapshot(token);
+    const snapshot = this.snapshot(token, waiting.id);
     if (!snapshot) throw new Error('Could not join the match');
     return { token, match: snapshot };
   }
@@ -177,9 +196,10 @@ class InProcessGameService {
   /*** Route a player-authorized command to one strictly scoped transition. */
   execute(
     token: string,
+    matchId: string,
     command: Exclude<Command, { action: 'create' | 'join' }>,
   ): MatchSnapshot | null {
-    const active = this.resolve(token);
+    const active = this.resolve(token, matchId);
     if (!active) throw new Error('No active session');
     const { match, color } = active;
     switch (command.action) {
@@ -201,7 +221,7 @@ class InProcessGameService {
       default:
         throw new Error('Unknown command');
     }
-    return this.snapshot(token);
+    return this.snapshot(token, matchId);
   }
 
   /*** Reject invalid coins and freeze every individual choice when ready. */
@@ -270,7 +290,7 @@ class InProcessGameService {
     if (match.phase === 'waiting') this.matches.delete(match.id);
     if (color === 'w') match.white = '';
     else match.black = null;
-    this.sessions.delete(token);
+    this.removeSession(token, match.id);
   }
 
   /*** Restore independent choices and preserve the immutable template for rematches. */

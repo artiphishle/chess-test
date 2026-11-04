@@ -3,7 +3,7 @@ import { getPlayerTabId } from './getPlayerTabId.ts';
 
 /*** Refresh the current anonymous player's session without a cache. */
 export async function fetchMatchAsync(): Promise<{
-  match: MatchSnapshot | null;
+  matches: readonly MatchSnapshot[];
   lobby: readonly LobbyMatch[];
 }> {
   const response = await fetch('/api/game', {
@@ -13,7 +13,7 @@ export async function fetchMatchAsync(): Promise<{
   });
   if (!response.ok) throw new Error('Match polling temporarily unavailable');
   return (await response.json()) as {
-    match: MatchSnapshot | null;
+    matches: readonly MatchSnapshot[];
     lobby: readonly LobbyMatch[];
   };
 }

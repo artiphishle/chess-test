@@ -20,6 +20,11 @@ function match(response: ApiHandlerResponse): MatchSnapshot | null {
   return (response.body as { match: MatchSnapshot | null }).match;
 }
 
+/*** Read all games authorized to this browser tab, not just one selected match. */
+function games(response: ApiHandlerResponse): readonly MatchSnapshot[] {
+  return (response.body as { matches: readonly MatchSnapshot[] }).matches;
+}
+
 /*** Execute a browser-tab-scoped request through the actual Ankhorage API runtime. */
 function post(cookie: string, tab: string, body: Record<string, unknown>) {
   return api.dispatchAsync({
@@ -54,14 +59,14 @@ void test('two same-browser tabs pair as White and Black while Safari waits', as
   assert.equal(whiteMatch.color, 'w');
   assert.equal(blackMatch.color, 'b');
   assert.equal(blackMatch.id, whiteMatch.id);
-  assert.equal(match(await get(cookieChrome, chromeTab1))?.color, 'w');
-  assert.equal(match(await get(cookieChrome, chromeTab2))?.color, 'b');
-  assert.equal(match(await get(cookieSafari, safariTab)), null);
+  assert.equal(games(await get(cookieChrome, chromeTab1))[0]?.color, 'w');
+  assert.equal(games(await get(cookieChrome, chromeTab2))[0]?.color, 'b');
+  assert.deepEqual(games(await get(cookieSafari, safariTab)), []);
 
   const spectator = await post(cookieSafari, safariTab, { action: 'create', template: preset });
   assert.equal(match(spectator)?.phase, 'waiting');
   assert.notEqual(match(spectator)?.id, whiteMatch.id);
-  await post(cookieSafari, safariTab, { action: 'leave' });
+  await post(cookieSafari, safariTab, { action: 'leave', matchId: match(spectator)?.id });
 });
 
 void test('only the correct tab moves its own color, with alternating turns', async () => {
@@ -74,34 +79,46 @@ void test('only the correct tab moves its own color, with alternating turns', as
   const moveBlack = { from: { x: 4, y: 1 }, to: { x: 4, y: 3 } };
 
   assert.equal(
-    (await post(cookieSecondMatch, chromeTab2, { action: 'move', move: moveBlack })).status,
+    (
+      await post(cookieSecondMatch, chromeTab2, {
+        action: 'move',
+        matchId: created.id,
+        move: moveBlack,
+      })
+    ).status,
     409,
   );
   const white = await post(cookieSecondMatch, chromeTab1, {
     action: 'move',
+    matchId: created.id,
     move: moveWhite,
   });
   assert.equal(white.status, 200);
   assert.equal(match(white)?.state?.turn, 'b');
   const black = await post(cookieSecondMatch, chromeTab2, {
     action: 'move',
+    matchId: created.id,
     move: moveBlack,
   });
   assert.equal(black.status, 200);
   assert.equal(match(black)?.state?.turn, 'w');
-  assert.equal(match(await get(cookieSecondMatch, chromeTab1))?.state?.board[3][4]?.color, 'b');
+  assert.equal(games(await get(cookieSecondMatch, chromeTab1))[0]?.state?.board[3][4]?.color, 'b');
 
-  assert.equal(match(await get(cookieSafari, chromeTab1)), null);
+  assert.deepEqual(games(await get(cookieSafari, chromeTab1)), []);
   const stolen = await post(cookieSafari, chromeTab1, {
     action: 'move',
+    matchId: created.id,
     move: moveWhite,
   });
   assert.equal(stolen.status, 409);
 
-  const departure = await post(cookieSecondMatch, chromeTab1, { action: 'leave' });
+  const departure = await post(cookieSecondMatch, chromeTab1, {
+    action: 'leave',
+    matchId: created.id,
+  });
   assert.equal(departure.status, 200);
   assert.equal(departure.headers['set-cookie'], undefined);
-  assert.equal(match(await get(cookieSecondMatch, chromeTab2))?.result?.winner, 'b');
+  assert.equal(games(await get(cookieSecondMatch, chromeTab2))[0]?.result?.winner, 'b');
 });
 
 void test('missing tab identity is rejected on writes', async () => {
@@ -139,10 +156,10 @@ void test('public lobby lists multiple 10x13 offers and grants only the first cl
     headers: {},
   });
   const payload = publicView.body as {
-    match: MatchSnapshot | null;
+    matches: readonly MatchSnapshot[];
     lobby: readonly { id: string; name: string; width: number; height: number; coins: number }[];
   };
-  assert.equal(payload.match, null);
+  assert.deepEqual(payload.matches, []);
   assert.ok(payload.lobby.some((offer) => offer.id === offerA.id && offer.coins === 12));
   assert.ok(payload.lobby.some((offer) => offer.id === offerB.id && offer.width === 10));
   const [first, second] = await Promise.all([
@@ -151,13 +168,56 @@ void test('public lobby lists multiple 10x13 offers and grants only the first cl
   ]);
   assert.equal([first.status, second.status].filter((status) => status === 200).length, 1);
   assert.equal([first.status, second.status].filter((status) => status === 409).length, 1);
-  assert.equal(match(await get(cookieA, chromeTab1))?.phase, 'setup');
+  assert.equal(games(await get(cookieA, chromeTab1))[0]?.phase, 'setup');
   const refreshed = await get(cookieB, chromeTab2);
   const remaining = (refreshed.body as { lobby: readonly { id: string }[] }).lobby;
   assert.ok(remaining.some((offer) => offer.id === offerB.id));
   assert.ok(!remaining.some((offer) => offer.id === offerA.id));
-  await post(cookieA, chromeTab1, { action: 'leave' });
-  await post(cookieB, chromeTab1, { action: 'leave' });
-  await post(cookieC, chromeTab1, { action: 'leave' });
-  await post(cookieD, chromeTab1, { action: 'leave' });
+  await post(cookieA, chromeTab1, { action: 'leave', matchId: offerA.id });
+  await post(cookieB, chromeTab1, { action: 'leave', matchId: offerB.id });
+  await post(cookieC, chromeTab1, { action: 'leave', matchId: offerA.id });
+});
+
+void test('one tab owns three offers and receives multiple match tabs after separate guests join', async () => {
+  const [standard, wide] = createPresets();
+  const host = 'chess_session=aaaaaa91-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const guestOne = 'chess_session=bbbbbb91-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const guestTwo = 'chess_session=cccccc91-cccc-4ccc-8ccc-cccccccccccc';
+  const created = await Promise.all([
+    post(host, chromeTab1, { action: 'create', template: standard }),
+    post(host, chromeTab1, { action: 'create', template: wide }),
+    post(host, chromeTab1, { action: 'create', template: { ...wide, name: 'Extra offer' } }),
+  ]);
+  const ids = created.map((response) => match(response)?.id);
+  assert.ok(ids.every((id) => typeof id === 'string'));
+  assert.equal(games(await get(host, chromeTab1)).length, 3);
+  await post(guestOne, chromeTab1, { action: 'join', matchId: ids[0] });
+  await post(guestTwo, chromeTab1, { action: 'join', matchId: ids[1] });
+  const all = games(await get(host, chromeTab1));
+  assert.equal(all.filter((entry) => entry.phase !== 'waiting').length, 2);
+  assert.equal(all.filter((entry) => entry.phase === 'waiting').length, 1);
+  assert.equal(
+    (await post(guestOne, chromeTab1, { action: 'resign', matchId: ids[1] })).status,
+    409,
+  );
+  const played = await post(host, chromeTab1, {
+    action: 'move',
+    matchId: ids[0],
+    move: { from: { x: 4, y: 6 }, to: { x: 4, y: 4 } },
+  });
+  assert.equal(played.status, 200);
+  assert.equal(
+    games(await get(host, chromeTab1)).find((entry) => entry.id === ids[0])?.state?.turn,
+    'b',
+  );
+  assert.equal(
+    games(await get(host, chromeTab1)).find((entry) => entry.id === ids[1])?.phase,
+    'setup',
+  );
+  await post(host, chromeTab1, { action: 'leave', matchId: ids[2] });
+  assert.equal(games(await get(host, chromeTab1)).length, 2);
+  await post(host, chromeTab1, { action: 'leave', matchId: ids[0] });
+  await post(host, chromeTab1, { action: 'leave', matchId: ids[1] });
+  await post(guestOne, chromeTab1, { action: 'leave', matchId: ids[0] });
+  await post(guestTwo, chromeTab1, { action: 'leave', matchId: ids[1] });
 });
