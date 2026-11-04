@@ -65,26 +65,8 @@ function writeGame(request: ApiRequest): ApiHandlerResponse {
   const service = getGameService();
   const browserId = readToken(request.headers.cookie);
   try {
-    if (request.body.action === 'create' || request.body.action === 'join') {
-      const verifiedBrowserId = browserId ?? randomUUID();
-      const identity = `${verifiedBrowserId}:${tabId}`;
-      const joined =
-        request.body.action === 'create'
-          ? service.create(identity, request.body.template)
-          : service.join(
-              identity,
-              typeof request.body.matchId === 'string' ? request.body.matchId : '',
-            );
-      return {
-        headers: browserId
-          ? headers
-          : {
-              ...headers,
-              'set-cookie': `${cookieName}=${verifiedBrowserId}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`,
-            },
-        body: { match: joined.match },
-      };
-    }
+    if (request.body.action === 'create' || request.body.action === 'join')
+      return createOrJoinGame(service, browserId, tabId, request.body);
     if (!browserId) return { status: 401, headers, body: { error: 'No session' } };
     if (typeof request.body.matchId !== 'string' || !request.body.matchId) {
       return { status: 400, headers, body: { error: 'Missing match ID' } };
@@ -102,6 +84,30 @@ function writeGame(request: ApiRequest): ApiHandlerResponse {
       body: { error: error instanceof Error ? error.message : 'Invalid request' },
     };
   }
+}
+
+/*** Create a public offer or claim a named waiting seat with cookie-scoped identity. */
+function createOrJoinGame(
+  service: ReturnType<typeof getGameService>,
+  browserId: string | undefined,
+  tabId: string,
+  body: Record<string, unknown>,
+): ApiHandlerResponse {
+  const verifiedBrowserId = browserId ?? randomUUID();
+  const identity = `${verifiedBrowserId}:${tabId}`;
+  const joined =
+    body.action === 'create'
+      ? service.create(identity, body.template)
+      : service.join(identity, typeof body.matchId === 'string' ? body.matchId : '');
+  return {
+    headers: browserId
+      ? headers
+      : {
+          ...headers,
+          'set-cookie': `${cookieName}=${verifiedBrowserId}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`,
+        },
+    body: { match: joined.match },
+  };
 }
 
 /*** Reject mismatched request origins without trusting arbitrary forwarded origins. */
