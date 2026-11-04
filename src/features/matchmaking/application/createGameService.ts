@@ -8,7 +8,6 @@ type Phase = 'waiting' | 'setup' | 'playing' | 'finished';
 type Command =
   | { action: 'join'; template: unknown }
   | { action: 'choose'; x: number; y: number; kind: PieceKind }
-  | { action: 'ready' }
   | { action: 'move'; move: Move }
   | { action: 'resign' }
   | { action: 'rematch' }
@@ -96,7 +95,7 @@ class InProcessGameService {
       if (previous) return { token: previousToken, match: previous };
     }
     const template = validateTemplate(proposedTemplate);
-    const token = this.ids();
+    const token = previousToken ?? this.ids();
     const waiting = this.queue
       .map((id) => this.matches.get(id))
       .find(
@@ -141,9 +140,6 @@ class InProcessGameService {
       case 'choose':
         this.choose(match, color, command);
         break;
-      case 'ready':
-        this.readyUp(match, color);
-        break;
       case 'move':
         this.move(match, color, command.move);
         break;
@@ -175,23 +171,20 @@ class InProcessGameService {
     const cell = match.template.cells.at(y)?.at(x);
     if (cell?.kind !== 'coin' || cell.color !== color || !cell.options.includes(kind))
       throw new Error('Choice not allowed');
-    Object.assign(color === 'w' ? match.choices.w : match.choices.b, { [`${x}:${y}`]: kind });
+    const choices = color === 'w' ? match.choices.w : match.choices.b;
+    const key = `${x}:${y}`;
+    if (Object.hasOwn(choices, key)) throw new Error('Coin already resolved');
+    Object.assign(choices, { [key]: kind });
+    this.finishSetupIfResolved(match, color, choices);
   }
 
-  /*** Confirm every owned coin has resolved before allowing the opening move. */
-  private readyUp(match: Match, color: Color): void {
-    if (match.phase !== 'setup' || isReady(match.ready, color)) throw new Error('Not in setup');
-    const missing = match.template.cells.some((row, y) =>
-      row.some(
-        (cell, x) =>
-          cell?.kind === 'coin' &&
-          cell.color === color &&
-          !Object.entries(color === 'w' ? match.choices.w : match.choices.b).some(
-            ([key]) => key === `${x}:${y}`,
-          ),
-      ),
-    );
-    if (missing) throw new Error('Resolve every choice coin first');
+  /*** Mark one side ready and start automatically when all its coins are resolved. */
+  private finishSetupIfResolved(
+    match: Match,
+    color: Color,
+    choices: Readonly<Record<string, PieceKind>>,
+  ): void {
+    if (!areAllCoinsResolved(match.template, color, choices)) return;
     if (color === 'w') match.ready.w = true;
     else match.ready.b = true;
     if (match.ready.w && match.ready.b) this.start(match);
@@ -268,4 +261,18 @@ function opposite(color: Color): Color {
 /*** Read the current player's ready flag without computed-property access. */
 function isReady(ready: Readonly<Record<Color, boolean>>, color: Color): boolean {
   return color === 'w' ? ready.w : ready.b;
+}
+
+/*** Detect completion of only the acting player's unresolved choice coins. */
+function areAllCoinsResolved(
+  template: Template,
+  color: Color,
+  choices: Readonly<Record<string, PieceKind>>,
+): boolean {
+  return template.cells.every((row, y) =>
+    row.every(
+      (cell, x) =>
+        cell?.kind !== 'coin' || cell.color !== color || Object.hasOwn(choices, `${x}:${y}`),
+    ),
+  );
 }

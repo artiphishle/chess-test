@@ -13,6 +13,7 @@ export interface BoardInteraction {
   readonly selected: Position | null;
   readonly promotion: { from: Position; to: Position } | null;
   readonly activeCoin: Position | null;
+  readonly cancelCoin: () => void;
   readonly legal: readonly Move[];
   readonly onSquare: (position: Position) => void;
   readonly choose: (kind: PieceKind) => void;
@@ -49,6 +50,7 @@ export function useBoardInteraction(session: MatchSession): BoardInteraction {
     activeCoin,
     legal,
     ...actions,
+    cancelCoin: () => setActiveCoin(null),
     cancelPromotion: () => setPromotion(null),
   };
 }

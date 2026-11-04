@@ -34,7 +34,13 @@ function handleSquare(context: ActionState, position: Position): void {
   if (!match) return;
   if (match.phase === 'setup') {
     const coin = match.template.cells.at(position.y)?.at(position.x);
-    if (coin?.kind === 'coin' && coin.color === match.color && !match.ready[match.color]) {
+    if (
+      !busy &&
+      coin?.kind === 'coin' &&
+      coin.color === match.color &&
+      !match.ready[match.color] &&
+      !Object.hasOwn(match.choices, `${position.x}:${position.y}`)
+    ) {
       context.setActiveCoin(position);
     }
     return;

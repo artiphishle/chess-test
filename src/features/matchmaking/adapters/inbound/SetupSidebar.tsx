@@ -2,52 +2,46 @@
 
 import { Button } from '@ankhorage/zora/web/button';
 
-import type { BoardInteraction } from '../../../chess/adapters/inbound/useBoardInteraction.ts';
-import { ActiveCoinChoice } from './ActiveCoinChoice.tsx';
 import type { MatchSession } from './useMatchSession.ts';
 
 interface Props {
   readonly session: MatchSession;
-  readonly interaction: BoardInteraction;
 }
 
-/*** Let the player resolve owned choice coins and confirm the setup. */
-export function SetupSidebar({ session, interaction }: Props) {
+/*** Show automatic choice-coin progress without requiring an additional ready command. */
+export function SetupSidebar({ session }: Props) {
   const { match } = session;
   if (!match) return null;
   const ownReady = match.ready[match.color];
   const opponentReady = match.ready[match.color === 'w' ? 'b' : 'w'];
-  const missing = match.template.cells.some((row, y) =>
-    row.some(
-      (cell, x) =>
-        cell?.kind === 'coin' && cell.color === match.color && !match.choices[`${x}:${y}`],
+  const coins = match.template.cells.flatMap((row, y) =>
+    row.flatMap((cell, x) =>
+      cell?.kind === 'coin' && cell.color === match.color ? [`${x}:${y}`] : [],
     ),
   );
+  const resolved = coins.filter((key) => Object.hasOwn(match.choices, key)).length;
   return (
     <>
-      <h2>Choice Coins auflösen</h2>
+      <h2>Deine Choice Coins</h2>
       <p className="muted">
-        Wähle jeden Deiner Coins auf dem Brett und bestimme die Figur. Jeder Coin kann unabhängig
-        gewählt werden.
+        Tippe auf einen Deiner offenen Coins auf dem Brett. Wähle die Figur im Dialog. Bereits
+        eingesetzte Figuren bleiben für diese Partie fixiert.
       </p>
       <div className="ready-status">
-        Du: {ownReady ? 'Bereit' : 'Wählst Figuren'} · Gegner:{' '}
-        {opponentReady ? 'Bereit' : 'Wählt Figuren'}
+        <strong>
+          {resolved} / {coins.length} Figuren gewählt
+        </strong>
+        <div>Du: {ownReady ? 'Bereit ✓' : 'Wählst Figuren'}</div>
+        <div>Gegner: {opponentReady ? 'Bereit ✓' : 'Wählt Figuren'}</div>
       </div>
-      <ActiveCoinChoice match={match} interaction={interaction} />
-      <Button
-        disabled={session.busy || ownReady || missing}
-        onPress={() => {
-          void session.act({ action: 'ready' });
-        }}
-      >
-        Auswahl bestätigen
-      </Button>
-      {ownReady ? (
-        <p className="muted">Deine Auswahl ist gesperrt. Warte auf Deinen Gegner.</p>
-      ) : null}
+      <p className="muted">
+        {ownReady
+          ? 'Deine Auswahl ist abgeschlossen. Die Partie startet automatisch, sobald Dein Gegner fertig ist.'
+          : 'Sobald alle Deine Coins ersetzt sind, bist Du automatisch bereit.'}
+      </p>
       <Button
         variant="ghost"
+        disabled={session.busy}
         onPress={() => {
           void session.leave();
         }}
