@@ -200,7 +200,7 @@ void test('public lobby contains many independent custom 10x13 offers and no pri
     'name',
     'width',
   ]);
-  const selected = offers[12];
+  const selected = offers.at(12);
   assert.ok(selected);
   const visitor = service.join('visitor', selected.match.id);
   assert.equal(visitor.match.id, selected.match.id);
@@ -228,7 +228,10 @@ void test('claiming an already filled game never assigns two opponents', () => {
 void test('expired and cancelled public offers cannot be claimed', () => {
   let now = 10;
   let nextId = 0;
-  const service = createGameService(() => `id-${++nextId}`, () => now);
+  const service = createGameService(
+    () => `id-${++nextId}`,
+    () => now,
+  );
   const [standard] = createPresets();
   const cancelled = service.create('owner-a', standard);
   assert.equal(service.execute('owner-a', { action: 'leave' }), null);
