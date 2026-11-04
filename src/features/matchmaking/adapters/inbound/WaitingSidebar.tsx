@@ -13,7 +13,8 @@ export function WaitingSidebar({ leave }: Props) {
       <div className="pulsing-icon">♟</div>
       <h2>Partie in der Lobby</h2>
       <p className="muted">
-        Deine Startaufstellung ist gesperrt. Andere Spieler sehen das Angebot in der Lobby und können beitreten.
+        Deine Startaufstellung ist gesperrt. Andere Spieler sehen das Angebot in der Lobby und
+        können beitreten.
       </p>
       <Button
         variant="outline"
