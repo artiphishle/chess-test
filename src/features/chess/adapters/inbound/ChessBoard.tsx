@@ -10,6 +10,7 @@ interface Props {
   readonly flipped?: boolean;
   readonly selected?: Position | null;
   readonly hints?: readonly Position[];
+  readonly checkedKings?: readonly Position[];
   readonly disabled?: boolean;
   readonly onSquare: (position: Position) => void;
 }
@@ -22,6 +23,7 @@ export function ChessBoard({
   flipped = false,
   selected,
   hints = [],
+  checkedKings = [],
   disabled = false,
   onSquare,
 }: Props) {
@@ -47,6 +49,7 @@ export function ChessBoard({
               position={{ x, y }}
               selected={selected}
               hinted={hints.some((target) => target.x === x && target.y === y)}
+              checked={checkedKings.some((target) => target.x === x && target.y === y)}
               disabled={disabled}
               onSquare={onSquare}
             />
@@ -62,12 +65,13 @@ interface SquareProps {
   readonly position: Position;
   readonly selected?: Position | null;
   readonly hinted: boolean;
+  readonly checked: boolean;
   readonly disabled: boolean;
   readonly onSquare: (position: Position) => void;
 }
 
 /*** Preserve square accessibility while distinguishing coins from resolved pieces. */
-function Square({ cell, position, selected, hinted, disabled, onSquare }: SquareProps) {
+function Square({ cell, position, selected, hinted, checked, disabled, onSquare }: SquareProps) {
   const { x, y } = position;
   const active = selected?.x === x && selected.y === y;
   const label =
@@ -79,9 +83,9 @@ function Square({ cell, position, selected, hinted, disabled, onSquare }: Square
   return (
     <button
       type="button"
-      aria-label={`Feld ${x + 1},${y + 1}: ${label}`}
+      aria-label={`Feld ${x + 1},${y + 1}: ${label}${checked ? ', im Schach' : ''}`}
       aria-pressed={active}
-      className={`square ${(x + y) % 2 === 0 ? 'light' : 'dark'}${active ? ' selected' : ''}${hinted ? ' legal' : ''}`}
+      className={`square ${(x + y) % 2 === 0 ? 'light' : 'dark'}${active ? ' selected' : ''}${hinted ? ' legal' : ''}${checked ? ' in-check' : ''}`}
       disabled={disabled}
       onClick={() => onSquare(position)}
     >

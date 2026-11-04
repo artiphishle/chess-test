@@ -2,6 +2,7 @@
 
 import { ChessBoard } from '../../../chess/adapters/inbound/ChessBoard.tsx';
 import type { BoardInteraction } from '../../../chess/adapters/inbound/useBoardInteraction.ts';
+import { getCheckedKingPositions } from '../../../chess/domain/getCheckedKingPositions.ts';
 import { MatchSidebar } from './MatchSidebar.tsx';
 import type { MatchSession } from './useMatchSession.ts';
 
@@ -14,6 +15,7 @@ interface Props {
 export function MatchView({ session, interaction }: Props) {
   const { match } = session;
   if (!match) return null;
+  const checkedKings = match.state ? getCheckedKingPositions(match.state.board) : [];
   const title = {
     waiting: 'Warte auf Gegner',
     setup: 'Figuren wählen',
@@ -36,6 +38,7 @@ export function MatchView({ session, interaction }: Props) {
           flipped={match.color === 'b'}
           selected={match.phase === 'setup' ? interaction.activeCoin : interaction.selected}
           hints={interaction.legal.map((move) => move.to)}
+          checkedKings={checkedKings}
           onSquare={interaction.onSquare}
         />
         <div className="board-footer">

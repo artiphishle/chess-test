@@ -743,3 +743,63 @@ footer span {
 .match-tab.active .match-tab-info {
   color: #c5e7d3;
 }
+
+/* Keep turn and check indicators visible even while the user browses other games. */
+.match-tab-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+.match-tab-heading .match-tab-name {
+  flex: 1;
+  min-width: 0;
+}
+.match-tab-alerts {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+.match-tab-badge {
+  border: 1px solid #8ac79d;
+  border-radius: 7px;
+  background: #234a37;
+  color: #d2ffe0;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  padding: 3px 5px;
+  white-space: nowrap;
+}
+.match-tab-badge.check {
+  border-color: #f199a1;
+  background: #642836;
+  color: #ffe7e7;
+}
+.match-tab:has(.match-tab-alerts) {
+  max-width: 260px;
+}
+.square.in-check,
+.square.in-check.light,
+.square.in-check.dark {
+  background: radial-gradient(circle, #ff8686 0%, #d94e59 64%, #8b2638 100%);
+  box-shadow: inset 0 0 0 4px #ff303d;
+}
+.square.in-check.selected {
+  box-shadow: inset 0 0 0 4px #ff303d, inset 0 0 0 7px #ffdf85;
+}
+.square.in-check::after {
+  content: '!';
+  position: absolute;
+  top: 2px;
+  right: 5px;
+  z-index: 2;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  text-shadow: 0 1px 2px #4a0a17;
+  pointer-events: none;
+}
