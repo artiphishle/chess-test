@@ -67,6 +67,6 @@ export function useMatchSession(): MatchSession {
     error,
     clearError: () => setError(''),
     act,
-    leave: async () => { await act({ action: 'leave' }); },
+    leave: () => act({ action: 'leave' }).then(() => undefined),
   };
 }
