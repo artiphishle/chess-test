@@ -57,9 +57,6 @@ export function useMatchSession(): MatchSession {
     },
     [polling],
   );
-  const leave = useCallback(async (): Promise<void> => {
-    await act({ action: 'leave' });
-  }, [act]);
   return {
     match: polling.matches.find((entry) => entry.id === polling.activeId) ?? null,
     matches: polling.matches,
@@ -70,6 +67,6 @@ export function useMatchSession(): MatchSession {
     error,
     clearError: () => setError(''),
     act,
-    leave,
+    leave: async () => { await act({ action: 'leave' }); },
   };
 }
