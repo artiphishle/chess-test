@@ -1,8 +1,8 @@
 'use client';
 
+import type { LobbyMatch } from '../../application/createGameService.ts';
 import { TemplateEditor } from '../../../templates/adapters/inbound/TemplateEditor.tsx';
 import type { TemplateLibrary } from '../../../templates/adapters/inbound/useTemplateLibrary.ts';
-import type { LobbyMatch } from '../../application/createGameService.ts';
 import { LobbyHero } from './LobbyHero.tsx';
 import { OpenMatches } from './OpenMatches.tsx';
 import { LobbyPreview } from './LobbyPreview.tsx';
