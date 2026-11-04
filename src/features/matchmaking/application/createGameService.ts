@@ -8,7 +8,6 @@ type Phase = 'waiting' | 'setup' | 'playing' | 'finished';
 type Command =
   | { action: 'join'; template: unknown }
   | { action: 'choose'; x: number; y: number; kind: PieceKind }
-  | { action: 'ready' }
   | { action: 'move'; move: Move }
   | { action: 'resign' }
   | { action: 'rematch' }
@@ -141,9 +140,6 @@ class InProcessGameService {
       case 'choose':
         this.choose(match, color, command);
         break;
-      case 'ready':
-        this.readyUp(match, color);
-        break;
       case 'move':
         this.move(match, color, command.move);
         break;
@@ -175,26 +171,23 @@ class InProcessGameService {
     const cell = match.template.cells.at(y)?.at(x);
     if (cell?.kind !== 'coin' || cell.color !== color || !cell.options.includes(kind))
       throw new Error('Choice not allowed');
-    Object.assign(color === 'w' ? match.choices.w : match.choices.b, { [`${x}:${y}`]: kind });
-  }
-
-  /*** Confirm every owned coin has resolved before allowing the opening move. */
-  private readyUp(match: Match, color: Color): void {
-    if (match.phase !== 'setup' || isReady(match.ready, color)) throw new Error('Not in setup');
-    const missing = match.template.cells.some((row, y) =>
+    const choices = color === 'w' ? match.choices.w : match.choices.b;
+    const key = `${x}:${y}`;
+    if (Object.hasOwn(choices, key)) throw new Error('Coin already resolved');
+    Object.assign(choices, { [key]: kind });
+    const unresolved = match.template.cells.some((row, rowY) =>
       row.some(
-        (cell, x) =>
-          cell?.kind === 'coin' &&
-          cell.color === color &&
-          !Object.entries(color === 'w' ? match.choices.w : match.choices.b).some(
-            ([key]) => key === `${x}:${y}`,
-          ),
+        (candidate, colX) =>
+          candidate?.kind === 'coin' &&
+          candidate.color === color &&
+          !Object.hasOwn(choices, `${colX}:${rowY}`),
       ),
     );
-    if (missing) throw new Error('Resolve every choice coin first');
-    if (color === 'w') match.ready.w = true;
-    else match.ready.b = true;
-    if (match.ready.w && match.ready.b) this.start(match);
+    if (!unresolved) {
+      if (color === 'w') match.ready.w = true;
+      else match.ready.b = true;
+      if (match.ready.w && match.ready.b) this.start(match);
+    }
   }
 
   /*** Validate every requested move with the headless engine on the server. */
