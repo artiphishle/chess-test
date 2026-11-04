@@ -174,16 +174,17 @@ class InProcessGameService {
     previousToken: string | undefined,
     matchId: string,
   ): { token: string; match: MatchSnapshot } {
+    this.expireWaiting();
+    const waiting = this.matches.get(matchId);
+    if (previousToken && waiting?.white === previousToken)
+      throw new Error('Eigene Partie kann nicht beigetreten werden');
     if (previousToken) {
       const previous = this.snapshot(previousToken, matchId);
       if (previous) return { token: previousToken, match: previous };
     }
-    this.expireWaiting();
-    const waiting = this.matches.get(matchId);
     if (waiting?.phase !== 'waiting' || waiting.black !== null)
       throw new Error('Partie nicht mehr verfügbar');
     const token = previousToken ?? this.ids();
-    if (waiting.white === token) throw new Error('Eigene Partie kann nicht beigetreten werden');
     waiting.black = token;
     this.addSession(token, waiting.id);
     this.setup(waiting);
