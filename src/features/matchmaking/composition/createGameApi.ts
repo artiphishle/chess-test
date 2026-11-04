@@ -49,7 +49,7 @@ function readGame(request: ApiRequest): ApiHandlerResponse {
   const service = getGameService();
   return {
     headers,
-    body: { match: identity ? service.snapshot(identity) : null, lobby: service.lobby() },
+    body: { matches: identity ? service.games(identity) : [], lobby: service.lobby() },
   };
 }
 
@@ -86,9 +86,13 @@ function writeGame(request: ApiRequest): ApiHandlerResponse {
       };
     }
     if (!browserId) return { status: 401, headers, body: { error: 'No session' } };
+    if (typeof request.body.matchId !== 'string' || !request.body.matchId) {
+      return { status: 400, headers, body: { error: 'Missing match ID' } };
+    }
     const match = service.execute(
       `${browserId}:${tabId}`,
-      request.body as Parameters<typeof service.execute>[1],
+      request.body.matchId,
+      request.body as Parameters<typeof service.execute>[2],
     );
     return { headers, body: { match } };
   } catch (error) {
