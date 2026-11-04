@@ -46,22 +46,25 @@ export function useMatchSession(): MatchSession {
       window.clearInterval(interval);
     };
   }, [refresh]);
-  const act = useCallback(async (command: Record<string, unknown>): Promise<boolean> => {
-    mutationGeneration.current += 1;
-    setBusy(true);
-    setError('');
-    try {
-      setMatch(await sendGameCommandAsync(command));
-      await refresh();
-      return true;
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Verbindung fehlgeschlagen');
-      await refresh();
-      return false;
-    } finally {
-      setBusy(false);
-    }
-  }, [refresh]);
+  const act = useCallback(
+    async (command: Record<string, unknown>): Promise<boolean> => {
+      mutationGeneration.current += 1;
+      setBusy(true);
+      setError('');
+      try {
+        setMatch(await sendGameCommandAsync(command));
+        await refresh();
+        return true;
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Verbindung fehlgeschlagen');
+        await refresh();
+        return false;
+      } finally {
+        setBusy(false);
+      }
+    },
+    [refresh],
+  );
   const leave = useCallback(async (): Promise<void> => {
     await act({ action: 'leave' });
   }, [act]);
