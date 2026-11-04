@@ -1,17 +1,17 @@
 'use client';
 
-import type { LobbyMatch } from '../../application/createGameService.ts';
 import { TemplateEditor } from '../../../templates/adapters/inbound/TemplateEditor.tsx';
 import type { TemplateLibrary } from '../../../templates/adapters/inbound/useTemplateLibrary.ts';
 import { LobbyHero } from './LobbyHero.tsx';
 import { OpenMatches } from './OpenMatches.tsx';
+import type { MatchSession } from './useMatchSession.ts';
 import { LobbyPreview } from './LobbyPreview.tsx';
 
 interface Props {
   readonly library: TemplateLibrary;
   readonly busy: boolean;
   readonly onPlay: () => void;
-  readonly lobby: readonly LobbyMatch[];
+  readonly lobby: MatchSession['lobby'];
   readonly onJoin: (matchId: string) => void;
 }
 
