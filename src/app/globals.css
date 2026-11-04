@@ -658,3 +658,43 @@ footer span {
     padding: 22px;
   }
 }
+
+/* List public matches independently from the local board editor. */
+.open-matches {
+  margin-bottom: 24px;
+}
+.open-matches-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.open-matches-heading span {
+  color: var(--muted);
+  font-size: 13px;
+}
+.open-matches-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+  gap: 12px;
+}
+.open-match {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #1a2732;
+}
+.open-match strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.open-match small {
+  display: block;
+  color: var(--muted);
+  margin-top: 6px;
+}

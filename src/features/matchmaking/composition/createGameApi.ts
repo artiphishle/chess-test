@@ -46,7 +46,11 @@ export function createGameApi() {
 /*** Return only the session holder's authorized game snapshot. */
 function readGame(request: ApiRequest): ApiHandlerResponse {
   const identity = readIdentity(request.headers);
-  return { headers, body: { match: identity ? getGameService().snapshot(identity) : null } };
+  const service = getGameService();
+  return {
+    headers,
+    body: { match: identity ? service.snapshot(identity) : null, lobby: service.lobby() },
+  };
 }
 
 /*** Apply a validated session command, isolating HTTP details from match state. */
@@ -61,9 +65,16 @@ function writeGame(request: ApiRequest): ApiHandlerResponse {
   const service = getGameService();
   const browserId = readToken(request.headers.cookie);
   try {
-    if (request.body.action === 'join') {
+    if (request.body.action === 'create' || request.body.action === 'join') {
       const verifiedBrowserId = browserId ?? randomUUID();
-      const joined = service.join(`${verifiedBrowserId}:${tabId}`, request.body.template);
+      const identity = `${verifiedBrowserId}:${tabId}`;
+      const joined =
+        request.body.action === 'create'
+          ? service.create(identity, request.body.template)
+          : service.join(
+              identity,
+              typeof request.body.matchId === 'string' ? request.body.matchId : '',
+            );
       return {
         headers: browserId
           ? headers

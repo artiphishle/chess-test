@@ -45,11 +45,11 @@ function get(cookie: string, tab: string) {
 
 void test('two same-browser tabs pair as White and Black while Safari waits', async () => {
   const [preset] = createPresets();
-  const white = await post(cookieChrome, chromeTab1, { action: 'join', template: preset });
-  const black = await post(cookieChrome, chromeTab2, { action: 'join', template: preset });
+  const white = await post(cookieChrome, chromeTab1, { action: 'create', template: preset });
   const whiteMatch = match(white);
-  const blackMatch = match(black);
   assert.ok(whiteMatch);
+  const black = await post(cookieChrome, chromeTab2, { action: 'join', matchId: whiteMatch.id });
+  const blackMatch = match(black);
   assert.ok(blackMatch);
   assert.equal(whiteMatch.color, 'w');
   assert.equal(blackMatch.color, 'b');
@@ -58,7 +58,7 @@ void test('two same-browser tabs pair as White and Black while Safari waits', as
   assert.equal(match(await get(cookieChrome, chromeTab2))?.color, 'b');
   assert.equal(match(await get(cookieSafari, safariTab)), null);
 
-  const spectator = await post(cookieSafari, safariTab, { action: 'join', template: preset });
+  const spectator = await post(cookieSafari, safariTab, { action: 'create', template: preset });
   assert.equal(match(spectator)?.phase, 'waiting');
   assert.notEqual(match(spectator)?.id, whiteMatch.id);
   await post(cookieSafari, safariTab, { action: 'leave' });
@@ -66,8 +66,10 @@ void test('two same-browser tabs pair as White and Black while Safari waits', as
 
 void test('only the correct tab moves its own color, with alternating turns', async () => {
   const [preset] = createPresets();
-  await post(cookieSecondMatch, chromeTab1, { action: 'join', template: preset });
-  await post(cookieSecondMatch, chromeTab2, { action: 'join', template: preset });
+  const offer = await post(cookieSecondMatch, chromeTab1, { action: 'create', template: preset });
+  const created = match(offer);
+  assert.ok(created);
+  await post(cookieSecondMatch, chromeTab2, { action: 'join', matchId: created.id });
   const moveWhite = { from: { x: 4, y: 6 }, to: { x: 4, y: 4 } };
   const moveBlack = { from: { x: 4, y: 1 }, to: { x: 4, y: 3 } };
 
@@ -112,4 +114,50 @@ void test('missing tab identity is rejected on writes', async () => {
     body: { action: 'join', template: {} },
   });
   assert.equal(response.status, 400);
+});
+
+void test('public lobby lists multiple 10x13 offers and grants only the first claimant', async () => {
+  const [, wide] = createPresets();
+  const cookieA = 'chess_session=aaaaaaa1-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const cookieB = 'chess_session=bbbbbbb1-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const cookieC = 'chess_session=ccccccc1-cccc-4ccc-8ccc-cccccccccccc';
+  const cookieD = 'chess_session=ddddddd1-dddd-4ddd-8ddd-dddddddddddd';
+  const hostA = await post(cookieA, chromeTab1, { action: 'create', template: wide });
+  const hostB = await post(cookieB, chromeTab1, {
+    action: 'create',
+    template: { ...wide, name: 'Second wide board' },
+  });
+  const offerA = match(hostA);
+  const offerB = match(hostB);
+  assert.ok(offerA);
+  assert.ok(offerB);
+  const publicView = await api.dispatchAsync({
+    operationId: 'game.read',
+    method: 'GET',
+    params: {},
+    query: {},
+    headers: {},
+  });
+  const payload = publicView.body as {
+    match: MatchSnapshot | null;
+    lobby: readonly { id: string; name: string; width: number; height: number; coins: number }[];
+  };
+  assert.equal(payload.match, null);
+  assert.ok(payload.lobby.some((offer) => offer.id === offerA.id && offer.coins === 12));
+  assert.ok(payload.lobby.some((offer) => offer.id === offerB.id && offer.width === 10));
+  const [first, second] = await Promise.all([
+    post(cookieC, chromeTab1, { action: 'join', matchId: offerA.id }),
+    post(cookieD, chromeTab1, { action: 'join', matchId: offerA.id }),
+  ]);
+  assert.equal([first.status, second.status].filter((status) => status === 200).length, 1);
+  assert.equal([first.status, second.status].filter((status) => status === 409).length, 1);
+  assert.equal(match(await get(cookieA, chromeTab1))?.phase, 'setup');
+  const refreshed = await get(cookieB, chromeTab2);
+  const remaining = (refreshed.body as { lobby: readonly { id: string }[] }).lobby;
+  assert.ok(remaining.some((offer) => offer.id === offerB.id));
+  assert.ok(!remaining.some((offer) => offer.id === offerA.id));
+  await post(cookieA, chromeTab1, { action: 'leave' });
+  await post(cookieB, chromeTab1, { action: 'leave' });
+  await post(cookieC, chromeTab1, { action: 'leave' });
+  await post(cookieD, chromeTab1, { action: 'leave' });
 });

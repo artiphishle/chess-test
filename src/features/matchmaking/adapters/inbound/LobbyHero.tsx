@@ -21,12 +21,12 @@ export function LobbyHero({ library, busy, onPlay }: Props) {
           Schach. <em>Ohne Grenzen.</em>
         </h1>
         <p>
-          Ändere die Brettgrösse, stelle eigene Armeen zusammen und fordere den nächsten anonymen
-          Spieler heraus. Keine Anmeldung.
+          Konfiguriere Dein Brett und eröffne eine Partie in der öffentlichen Lobby. Andere Spieler
+          können Dein Angebot gezielt annehmen – ohne Anmeldung.
         </p>
         <div className="hero-actions">
           <Button onPress={onPlay} disabled={busy}>
-            ♟ Spielen
+            ♟ Partie erstellen
           </Button>
           <Button variant="outline" onPress={() => library.setEditing((value) => !value)}>
             {library.editing ? 'Vorschau' : 'Konfigurieren'}

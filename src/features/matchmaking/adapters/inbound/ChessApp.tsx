@@ -30,8 +30,12 @@ export function ChessApp() {
               <LobbyView
                 library={library}
                 busy={session.busy}
+                lobby={session.lobby}
                 onPlay={() => {
-                  void session.act({ action: 'join', template: library.template });
+                  void session.act({ action: 'create', template: library.template });
+                }}
+                onJoin={(matchId) => {
+                  void session.act({ action: 'join', matchId });
                 }}
               />
             )}

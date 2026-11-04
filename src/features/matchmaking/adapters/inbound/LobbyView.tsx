@@ -4,18 +4,23 @@ import { TemplateEditor } from '../../../templates/adapters/inbound/TemplateEdit
 import type { TemplateLibrary } from '../../../templates/adapters/inbound/useTemplateLibrary.ts';
 import { LobbyHero } from './LobbyHero.tsx';
 import { LobbyPreview } from './LobbyPreview.tsx';
+import { OpenMatches } from './OpenMatches.tsx';
+import type { MatchSession } from './useMatchSession.ts';
 
 interface Props {
   readonly library: TemplateLibrary;
   readonly busy: boolean;
   readonly onPlay: () => void;
+  readonly lobby: MatchSession['lobby'];
+  readonly onJoin: (matchId: string) => void;
 }
 
 /*** Present a lobby board preview or the unlocked template editor before joining. */
-export function LobbyView({ library, busy, onPlay }: Props) {
+export function LobbyView({ library, busy, onPlay, lobby, onJoin }: Props) {
   return (
     <>
       <LobbyHero library={library} busy={busy} onPlay={onPlay} />
+      <OpenMatches matches={lobby} busy={busy} onJoin={onJoin} />
       {library.editing ? (
         <TemplateEditor
           template={library.template}
