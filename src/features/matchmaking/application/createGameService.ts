@@ -152,7 +152,10 @@ class InProcessGameService {
   }
 
   /*** Claim the named waiting game exactly once in the authoritative process. */
-  join(previousToken: string | undefined, matchId: string): { token: string; match: MatchSnapshot } {
+  join(
+    previousToken: string | undefined,
+    matchId: string,
+  ): { token: string; match: MatchSnapshot } {
     if (previousToken) {
       const previous = this.snapshot(previousToken);
       if (previous) return { token: previousToken, match: previous };
@@ -162,7 +165,7 @@ class InProcessGameService {
     if (!waiting || waiting.phase !== 'waiting' || waiting.black !== null)
       throw new Error('Partie nicht mehr verfügbar');
     const token = previousToken ?? this.ids();
-    if (waiting.white === token) throw new Error('Eigene Partie kann nicht beigetreten werden');
+    if (waiting?.white === token) throw new Error('Eigene Partie kann nicht beigetreten werden');
     waiting.black = token;
     this.sessions.set(token, waiting.id);
     this.setup(waiting);
@@ -172,7 +175,10 @@ class InProcessGameService {
   }
 
   /*** Route a player-authorized command to one strictly scoped transition. */
-  execute(token: string, command: Exclude<Command, { action: 'create' | 'join' }>): MatchSnapshot | null {
+  execute(
+    token: string,
+    command: Exclude<Command, { action: 'create' | 'join' }>,
+  ): MatchSnapshot | null {
     const active = this.resolve(token);
     if (!active) throw new Error('No active session');
     const { match, color } = active;
