@@ -698,3 +698,48 @@ footer span {
   color: var(--muted);
   margin-top: 6px;
 }
+
+/* App tabs allow many independent games without replacing the lobby. */
+.match-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0 16px;
+  margin-bottom: 16px;
+  scrollbar-width: thin;
+}
+.match-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: 3px;
+  max-width: 220px;
+  min-height: 50px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: #182431;
+  color: var(--text);
+  padding: 9px 15px;
+  text-align: left;
+}
+.match-tab.active {
+  border-color: var(--accent);
+  background: #244239;
+}
+.match-tab-name {
+  font-size: 13px;
+  font-weight: 700;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.match-tab-info {
+  font-size: 11px;
+  color: var(--muted);
+}
+.match-tab.active .match-tab-info {
+  color: #c5e7d3;
+}
