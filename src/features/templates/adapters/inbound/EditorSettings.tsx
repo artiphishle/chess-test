@@ -2,6 +2,7 @@
 
 import { Button } from '@ankhorage/zora/web/button';
 import type { Cell, Color, Template } from '../../../../types/chess.ts';
+import { BOARD_DIMENSIONS, BOARD_DIMENSION_OPTIONS } from '../../constants/boardDimensions.ts';
 
 interface Props {
   readonly template: Template;
@@ -27,7 +28,13 @@ export function EditorSettings({
 }: Props) {
   const resize = (width: number, height: number): void => {
     if (!Number.isInteger(width) || !Number.isInteger(height)) return;
-    if (width < 2 || height < 2 || width > 32 || height > 32) return;
+    if (
+      width < BOARD_DIMENSIONS.min ||
+      height < BOARD_DIMENSIONS.min ||
+      width > BOARD_DIMENSIONS.max ||
+      height > BOARD_DIMENSIONS.max
+    )
+      return;
     onUpdate({
       ...template,
       width,
@@ -77,23 +84,29 @@ export function EditorSettings({
       <div className="pair">
         <label className="field-label">
           Breite
-          <input
-            type="number"
-            min={2}
-            max={32}
+          <select
             value={template.width}
             onChange={(event) => resize(Number(event.target.value), template.height)}
-          />
+          >
+            {BOARD_DIMENSION_OPTIONS.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="field-label">
           Höhe
-          <input
-            type="number"
-            min={2}
-            max={32}
+          <select
             value={template.height}
             onChange={(event) => resize(template.width, Number(event.target.value))}
-          />
+          >
+            {BOARD_DIMENSION_OPTIONS.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
         </label>
       </div>
       <label className="field-label">

@@ -1,4 +1,5 @@
 import type { Cell, Color, PieceKind, Template } from '../../../types/chess.ts';
+import { BOARD_DIMENSIONS } from '../constants/boardDimensions.ts';
 
 const colors: readonly string[] = ['w', 'b'];
 const kinds: readonly string[] = ['P', 'N', 'B', 'R', 'Q', 'K'];
@@ -10,12 +11,14 @@ export function validateTemplate(value: unknown): Template {
   if (
     !Number.isInteger(width) ||
     !Number.isInteger(height) ||
-    Number(width) < 2 ||
-    Number(height) < 2 ||
-    Number(width) > 32 ||
-    Number(height) > 32
+    Number(width) < BOARD_DIMENSIONS.min ||
+    Number(height) < BOARD_DIMENSIONS.min ||
+    Number(width) > BOARD_DIMENSIONS.max ||
+    Number(height) > BOARD_DIMENSIONS.max
   )
-    throw new Error('Board must be between 2 × 2 and 32 × 32');
+    throw new Error(
+      `Board must be between ${BOARD_DIMENSIONS.min} × ${BOARD_DIMENSIONS.min} and ${BOARD_DIMENSIONS.max} × ${BOARD_DIMENSIONS.max}`,
+    );
   if (
     typeof id !== 'string' ||
     !id ||

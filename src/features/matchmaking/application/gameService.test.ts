@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+import { BOARD_DIMENSIONS, BOARD_DIMENSION_OPTIONS } from '../../templates/constants/boardDimensions.ts';
 import { createPresets } from '../../templates/domain/createPresets.ts';
 import { validateTemplate } from '../../templates/domain/validateTemplate.ts';
 import { createGameService } from './createGameService.ts';
@@ -136,7 +137,33 @@ void test('resignation, rematch and departures enforce match ownership', () => {
 });
 
 void test('validate rejects malformed boards and forbidden coin choice values', () => {
-  assert.throws(() => validateTemplate({ ...createPresets()[0], width: 33 }), /between/);
+  const [standard] = createPresets();
+  assert.equal(BOARD_DIMENSIONS.max, 24);
+  assert.equal(BOARD_DIMENSION_OPTIONS.at(0), BOARD_DIMENSIONS.min);
+  assert.equal(BOARD_DIMENSION_OPTIONS.at(-1), BOARD_DIMENSIONS.max);
+  assert.throws(
+    () => validateTemplate({ ...standard, width: BOARD_DIMENSIONS.max + 1 }),
+    /between/,
+  );
+  assert.throws(
+    () => validateTemplate({ ...standard, height: BOARD_DIMENSIONS.max + 1 }),
+    /between/,
+  );
+  assert.throws(
+    () => validateTemplate({ ...standard, width: BOARD_DIMENSIONS.min - 1 }),
+    /between/,
+  );
+  const maximum = BOARD_DIMENSIONS.max;
+  const validMaximum = validateTemplate({
+    ...standard,
+    width: maximum,
+    height: maximum,
+    cells: Array.from({ length: maximum }, () =>
+      Array.from({ length: maximum }, () => null),
+    ),
+  });
+  assert.equal(validMaximum.width, maximum);
+  assert.equal(validMaximum.height, maximum);
   const [, preset] = createPresets();
   const cells = preset.cells.map((row) => [...row]);
   cells[12][1] = { kind: 'coin', color: 'w', options: ['N', 'Z' as 'N'] };
