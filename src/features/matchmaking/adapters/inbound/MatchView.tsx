@@ -34,7 +34,7 @@ export function MatchView({ session, interaction }: Props) {
           width={match.template.width}
           height={match.template.height}
           flipped={match.color === 'b'}
-          selected={interaction.selected}
+          selected={match.phase === 'setup' ? interaction.activeCoin : interaction.selected}
           hints={interaction.legal.map((move) => move.to)}
           onSquare={interaction.onSquare}
         />

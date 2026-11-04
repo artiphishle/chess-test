@@ -18,7 +18,7 @@ export function MatchSidebar({ session, interaction }: Props) {
   return (
     <aside className="panel side-panel">
       {phase === 'waiting' ? <WaitingSidebar leave={session.leave} /> : null}
-      {phase === 'setup' ? <SetupSidebar session={session} interaction={interaction} /> : null}
+      {phase === 'setup' ? <SetupSidebar session={session} /> : null}
       {phase === 'playing' ? <PlayingSidebar session={session} /> : null}
       {phase === 'finished' ? <FinishedSidebar session={session} /> : null}
     </aside>
