@@ -38,45 +38,54 @@ void test('queued template is copied, locked and cannot be modified from another
   );
 });
 
-void test('choice coins are private, independently resolved and immutable after ready', () => {
+void test('choice coins are private, independent and cannot be changed once selected', () => {
   const service = sessions();
   const [, preset] = createPresets();
-  const a = service.join(undefined, preset);
-  const b = service.join(undefined, preset);
-  assert.equal(a.match.phase, 'waiting');
-  assert.equal(b.match.phase, 'setup');
+  const white = service.join(undefined, preset);
+  const black = service.join(undefined, preset);
+  assert.equal(white.match.phase, 'waiting');
+  assert.equal(black.match.phase, 'setup');
   assert.throws(
-    () => service.execute(a.token, { action: 'choose', x: 0, y: 0, kind: 'B' }),
+    () => service.execute(white.token, { action: 'choose', x: 0, y: 0, kind: 'B' }),
     /not allowed/,
   );
-  assert.equal(service.snapshot(a.token)?.ready.w, false);
-  assert.equal(service.snapshot(a.token)?.ready.b, false);
-  service.execute(a.token, { action: 'choose', x: 1, y: 12, kind: 'N' });
-  assert.equal(service.snapshot(b.token)?.choices['1:12'], undefined);
-  assert.equal(service.snapshot(b.token)?.template.cells[12]?.[1]?.kind, 'coin');
+  service.execute(white.token, { action: 'choose', x: 1, y: 12, kind: 'N' });
+  const rival = service.snapshot(black.token);
+  assert.ok(rival);
+  assert.deepEqual(rival.choices, {});
+  assert.equal(rival.template.cells[12][1]?.kind, 'coin');
   assert.throws(
-    () => service.execute(a.token, { action: 'choose', x: 1, y: 12, kind: 'B' }),
+    () => service.execute(white.token, { action: 'choose', x: 1, y: 12, kind: 'B' }),
     /already resolved/,
   );
-  for (const x of [2, 3, 6, 7, 8]) {
-    service.execute(a.token, { action: 'choose', x, y: 12, kind: 'N' });
+});
+
+void test('completing both players coins starts automatically and locks every choice', () => {
+  const service = sessions();
+  const [, preset] = createPresets();
+  const white = service.join(undefined, preset);
+  const black = service.join(undefined, preset);
+  for (const x of [1, 2, 3, 6, 7, 8]) {
+    service.execute(white.token, { action: 'choose', x, y: 12, kind: 'N' });
   }
-  assert.equal(service.snapshot(a.token)?.phase, 'setup');
-  assert.equal(service.snapshot(a.token)?.ready.w, true);
-  assert.equal(service.snapshot(a.token)?.ready.b, false);
+  const waiting = service.snapshot(white.token);
+  assert.ok(waiting);
+  assert.equal(waiting.phase, 'setup');
+  assert.deepEqual(waiting.ready, { w: true, b: false });
   assert.throws(
-    () => service.execute(a.token, { action: 'choose', x: 1, y: 12, kind: 'B' }),
+    () => service.execute(white.token, { action: 'choose', x: 1, y: 12, kind: 'B' }),
     /locked/,
   );
   for (const x of [1, 2, 3, 6, 7, 8]) {
-    service.execute(b.token, { action: 'choose', x, y: 0, kind: 'B' });
+    service.execute(black.token, { action: 'choose', x, y: 0, kind: 'B' });
   }
-  const state = service.snapshot(a.token);
-  assert.ok(state?.state);
-  assert.equal(state.phase, 'playing');
-  assert.equal(state.state.board[12]?.[1]?.kind, 'N');
-  assert.equal(state.state.board[0]?.[1]?.kind, 'B');
-  assert.equal(state.template.cells[12]?.[1]?.kind, 'coin');
+  const result = service.snapshot(white.token);
+  assert.ok(result);
+  assert.ok(result.state);
+  assert.equal(result.phase, 'playing');
+  assert.equal(result.state.board[12][1]?.kind, 'N');
+  assert.equal(result.state.board[0][1]?.kind, 'B');
+  assert.equal(result.template.cells[12][1]?.kind, 'coin');
 });
 
 void test('server blocks moving out of turn, illegal moves, and opponent moves', () => {
@@ -130,8 +139,8 @@ void test('automatic setup supports asymmetric and custom free-coin choices', ()
   const service = sessions();
   const preset = structuredClone(createPresets()[0]);
   const cells = preset.cells.map((row) => [...row]);
-  cells[7]![1] = { kind: 'coin', color: 'w', options: ['P', 'N', 'B', 'R', 'Q', 'K'] };
-  cells[0]![1] = { kind: 'coin', color: 'b', options: ['P', 'N', 'B', 'R', 'Q', 'K'] };
+  cells[7][1] = { kind: 'coin', color: 'w', options: ['P', 'N', 'B', 'R', 'Q', 'K'] };
+  cells[0][1] = { kind: 'coin', color: 'b', options: ['P', 'N', 'B', 'R', 'Q', 'K'] };
   const free = { ...preset, cells };
   const white = service.join(undefined, free);
   const black = service.join(undefined, free);
@@ -155,7 +164,7 @@ void test('automatic setup supports asymmetric and custom free-coin choices', ()
 
 void test('rematch reopens each player coin selection and keeps the original template', () => {
   const service = sessions();
-  const coinTemplate = createPresets()[1];
+  const [, coinTemplate] = createPresets();
   const white = service.join(undefined, coinTemplate);
   const black = service.join(undefined, coinTemplate);
   for (const x of [1, 2, 3, 6, 7, 8]) {
@@ -166,7 +175,8 @@ void test('rematch reopens each player coin selection and keeps the original tem
   service.execute(white.token, { action: 'rematch' });
   const pending = service.execute(black.token, { action: 'rematch' });
   assert.equal(pending?.phase, 'setup');
-  assert.deepEqual(pending?.choices, {});
-  assert.deepEqual(pending?.ready, { w: false, b: false });
-  assert.equal(pending?.template.cells[12]?.[1]?.kind, 'coin');
+  assert.ok(pending);
+  assert.deepEqual(pending.choices, {});
+  assert.deepEqual(pending.ready, { w: false, b: false });
+  assert.equal(pending.template.cells[12][1]?.kind, 'coin');
 });
