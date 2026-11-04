@@ -12,7 +12,7 @@ export function useMatchPolling() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const request = useRef(0);
   const mutating = useRef(false);
-  const opened = useRef<Set<string> | null>(null);
+  const opened = useRef(new Set<string>());
   const refresh = useCallback(async () => {
     if (mutating.current) return;
     const serial = ++request.current;
@@ -22,7 +22,7 @@ export function useMatchPolling() {
       setMatches(next.matches);
       setLobby(next.lobby);
       const playable = next.matches.filter((match) => match.phase !== 'waiting');
-      const newlyJoined = playable.find((match) => !opened.current?.has(match.id));
+      const newlyJoined = playable.find((match) => !opened.current.has(match.id));
       opened.current = new Set(playable.map((match) => match.id));
       setActiveId((current) => {
         if (current && playable.some((match) => match.id === current)) return current;
