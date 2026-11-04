@@ -33,7 +33,8 @@ void test('queued template is copied, locked and cannot be modified from another
   const rival = service.join(undefined, queued.match.id);
   assert.equal(service.snapshot(rival.token, rival.match.id)?.template.cells[0]?.[0]?.kind, 'R');
   assert.throws(
-    () => service.execute(queued.token, queued.match.id, { action: 'choose', x: 1, y: 0, kind: 'N' }),
+    () =>
+      service.execute(queued.token, queued.match.id, { action: 'choose', x: 1, y: 0, kind: 'N' }),
     /locked/,
   );
 });
@@ -55,7 +56,8 @@ void test('choice coins are private, independent and cannot be changed once sele
   assert.deepEqual(rival.choices, {});
   assert.equal(rival.template.cells[12][1]?.kind, 'coin');
   assert.throws(
-    () => service.execute(white.token, white.match.id, { action: 'choose', x: 1, y: 12, kind: 'B' }),
+    () =>
+      service.execute(white.token, white.match.id, { action: 'choose', x: 1, y: 12, kind: 'B' }),
     /already resolved/,
   );
 });
@@ -73,7 +75,8 @@ void test('completing both players coins starts automatically and locks every ch
   assert.equal(waiting.phase, 'setup');
   assert.deepEqual(waiting.ready, { w: true, b: false });
   assert.throws(
-    () => service.execute(white.token, white.match.id, { action: 'choose', x: 1, y: 12, kind: 'B' }),
+    () =>
+      service.execute(white.token, white.match.id, { action: 'choose', x: 1, y: 12, kind: 'B' }),
     /locked/,
   );
   for (const x of [1, 2, 3, 6, 7, 8]) {
@@ -109,8 +112,10 @@ void test('server blocks moving out of turn, illegal moves, and opponent moves',
     /Illegal move/,
   );
   assert.equal(
-    service.execute(a.token, a.match.id, { action: 'move', move: { from: { x: 4, y: 6 }, to: { x: 4, y: 4 } } })
-      ?.state?.turn,
+    service.execute(a.token, a.match.id, {
+      action: 'move',
+      move: { from: { x: 4, y: 6 }, to: { x: 4, y: 4 } },
+    })?.state?.turn,
     'b',
   );
 });
@@ -124,7 +129,10 @@ void test('resignation, rematch and departures enforce match ownership', () => {
   assert.equal(service.execute(b.token, b.match.id, { action: 'rematch' })?.phase, 'playing');
   assert.equal(service.execute(b.token, b.match.id, { action: 'leave' }), null);
   assert.equal(service.snapshot(a.token, a.match.id)?.result?.winner, 'w');
-  assert.throws(() => service.execute(b.token, b.match.id, { action: 'resign' }), /No active session/);
+  assert.throws(
+    () => service.execute(b.token, b.match.id, { action: 'resign' }),
+    /No active session/,
+  );
 });
 
 void test('validate rejects malformed boards and forbidden coin choice values', () => {
@@ -171,7 +179,10 @@ void test('rematch reopens each player coin selection and keeps the original tem
     service.execute(white.token, white.match.id, { action: 'choose', x, y: 12, kind: 'N' });
     service.execute(black.token, black.match.id, { action: 'choose', x, y: 0, kind: 'B' });
   }
-  assert.equal(service.execute(white.token, white.match.id, { action: 'resign' })?.phase, 'finished');
+  assert.equal(
+    service.execute(white.token, white.match.id, { action: 'resign' })?.phase,
+    'finished',
+  );
   service.execute(white.token, white.match.id, { action: 'rematch' });
   const pending = service.execute(black.token, black.match.id, { action: 'rematch' });
   assert.equal(pending?.phase, 'setup');
@@ -257,7 +268,10 @@ void test('one player hosts three games and can participate in all after indepen
   assert.equal(service.lobby().length, 2);
   const challengerOne = service.join('guest-one', first.match.id);
   assert.equal(service.games('host').filter((match) => match.phase !== 'waiting').length, 2);
-  assert.equal(service.games('host').find((match) => match.id === third.match.id)?.phase, 'waiting');
+  assert.equal(
+    service.games('host').find((match) => match.id === third.match.id)?.phase,
+    'waiting',
+  );
   assert.equal(service.games('guest-one')[0]?.id, first.match.id);
   assert.equal(service.games('guest-two')[0]?.id, second.match.id);
   assert.throws(
@@ -265,7 +279,10 @@ void test('one player hosts three games and can participate in all after indepen
     /No active session/,
   );
   assert.equal(service.execute('host', third.match.id, { action: 'leave' }), null);
-  assert.deepEqual(service.games('host').map((match) => match.id), [first.match.id, second.match.id]);
+  assert.deepEqual(
+    service.games('host').map((match) => match.id),
+    [first.match.id, second.match.id],
+  );
   assert.equal(service.snapshot(challengerOne.token, first.match.id)?.phase, 'playing');
   assert.equal(service.snapshot(challengerTwo.token, second.match.id)?.phase, 'setup');
 });
