@@ -1,7 +1,7 @@
 name: Unit checks
 on:
   push:
-    branches: [main]
+    branches: [main, chore/css-format-inspect]
   pull_request:
 permissions:
   contents: read
@@ -20,6 +20,9 @@ jobs:
       - run: bun run test
       - run: bun run check-types
       - run: bun run lint
-      - run: bun run format:check
+      - run: |
+          bun run format
+          git diff -- src/app/globals.css
+          bun run format:check
       - run: bun run knip:check
       - run: bun run build
