@@ -174,8 +174,10 @@ class InProcessGameService {
     previousToken: string | undefined,
     matchId: string,
   ): { token: string; match: MatchSnapshot } {
-    const previous = previousToken ? this.snapshot(previousToken, matchId) : null;
-    if (previous) return { token: previousToken as string, match: previous };
+    if (previousToken) {
+      const previous = this.snapshot(previousToken, matchId);
+      if (previous) return { token: previousToken, match: previous };
+    }
     this.expireWaiting();
     const waiting = this.matches.get(matchId);
     if (waiting?.phase !== 'waiting' || waiting.black !== null)
