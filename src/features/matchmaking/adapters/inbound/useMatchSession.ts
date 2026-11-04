@@ -35,12 +35,8 @@ export function useMatchSession(): MatchSession {
     }
   }, []);
   useEffect(() => {
-    const initial = window.setTimeout(() => {
-      void refresh();
-    }, 0);
-    const interval = window.setInterval(() => {
-      void refresh();
-    }, 1200);
+    const initial = window.setTimeout(() => void refresh(), 0);
+    const interval = window.setInterval(() => void refresh(), 1200);
     return () => {
       window.clearTimeout(initial);
       window.clearInterval(interval);
