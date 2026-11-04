@@ -2,8 +2,10 @@
 
 import { ZoraProvider } from '@ankhorage/zora/web/runtime';
 
+import { PieceSetProvider } from '../../../chess/adapters/inbound/PieceSetProvider.tsx';
 import { useBoardInteraction } from '../../../chess/adapters/inbound/useBoardInteraction.ts';
 import { useTemplateLibrary } from '../../../templates/adapters/inbound/useTemplateLibrary.ts';
+import { ActiveCoinChoice } from './ActiveCoinChoice.tsx';
 import { AppHeader } from './AppHeader.tsx';
 import { LobbyView } from './LobbyView.tsx';
 import { MatchView } from './MatchView.tsx';
@@ -18,7 +20,8 @@ export function ChessApp() {
   const interaction = useBoardInteraction(session);
   return (
     <ZoraProvider theme={theme} initialMode="dark">
-      <main className="app-shell">
+      <PieceSetProvider>
+        <main className="app-shell">
         <AppHeader match={session.match} error={session.error} clearError={session.clearError} />
         <div className="page-content">
           {session.match ? (
@@ -33,12 +36,16 @@ export function ChessApp() {
             />
           )}
         </div>
+        {session.match?.phase === 'setup' ? (
+          <ActiveCoinChoice match={session.match} interaction={interaction} busy={session.busy} />
+        ) : null}
         <PromotionDialog interaction={interaction} />
         <ResultDialog session={session} />
         <footer>
           ANKHORAGE · CHESS TEST <span>Variable boards. Real chess rules.</span>
         </footer>
-      </main>
+        </main>
+      </PieceSetProvider>
     </ZoraProvider>
   );
 }

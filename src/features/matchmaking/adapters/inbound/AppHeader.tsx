@@ -1,5 +1,6 @@
 'use client';
 
+import { PieceSetSelect } from '../../../chess/adapters/inbound/PieceSetSelect.tsx';
 import type { MatchSnapshot } from '../../application/createGameService.ts';
 
 interface Props {
@@ -32,9 +33,12 @@ export function AppHeader({ match, error, clearError }: Props) {
             <p>Experimentelle Spielkonfigurationen</p>
           </div>
         </div>
-        <div className="header-status">
-          <span className="status-light" />
-          {status}
+        <div className="header-controls">
+          <PieceSetSelect />
+          <div className="header-status">
+            <span className="status-light" />
+            {status}
+          </div>
         </div>
       </header>
       {error ? (

@@ -1,6 +1,7 @@
 'use client';
 
 import type { Cell, Position } from '../../../../types/chess.ts';
+import { ChessPiece } from './ChessPiece.tsx';
 
 interface Props {
   readonly cells: readonly (readonly Cell[])[];
@@ -34,7 +35,7 @@ export function ChessBoard({
         aria-label={`${width} mal ${height} Schachbrett`}
         style={{
           gridTemplateColumns: `repeat(${width}, minmax(0, 1fr))`,
-          width: `max(100%, ${width * 36}px)`,
+          width: `max(100%, ${width * 40}px)`,
           maxWidth: `${width * 68}px`,
         }}
       >
@@ -89,30 +90,9 @@ function Square({ cell, position, selected, hinted, disabled, onSquare }: Square
           C
         </span>
       ) : cell ? (
-        <span className={`chess-piece ${cell.color === 'w' ? 'white-piece' : 'black-piece'}`}>
-          {pieceGlyph(cell)}
-        </span>
+        <ChessPiece piece={cell} />
       ) : null}
       {hinted ? <span className="legal-dot" /> : null}
     </button>
   );
-}
-
-/*** Resolve the symbolic chess piece without computed object lookups. */
-function pieceGlyph(piece: Exclude<Cell, null | { kind: 'coin' }>): string {
-  const white = piece.color === 'w';
-  switch (piece.kind) {
-    case 'K':
-      return white ? '♔' : '♚';
-    case 'Q':
-      return white ? '♕' : '♛';
-    case 'R':
-      return white ? '♖' : '♜';
-    case 'B':
-      return white ? '♗' : '♝';
-    case 'N':
-      return white ? '♘' : '♞';
-    case 'P':
-      return white ? '♙' : '♟';
-  }
 }
