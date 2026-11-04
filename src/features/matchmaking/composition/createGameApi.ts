@@ -71,7 +71,10 @@ function writeGame(request: ApiRequest): ApiHandlerResponse {
       const joined =
         request.body.action === 'create'
           ? service.create(identity, request.body.template)
-          : service.join(identity, String(request.body.matchId ?? ''));
+          : service.join(
+              identity,
+              typeof request.body.matchId === 'string' ? request.body.matchId : '',
+            );
       return {
         headers: browserId
           ? headers
