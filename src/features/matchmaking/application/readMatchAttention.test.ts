@@ -42,9 +42,9 @@ void test('10x13 check highlights the attacked king and prioritizes the check ta
   const cells: Cell[][] = Array.from({ length: wide.height }, () =>
     Array<Cell>(wide.width).fill(null),
   );
-  cells[wide.height - 1]![4] = { color: 'w', kind: 'K' };
-  cells[0]![0] = { color: 'b', kind: 'K' };
-  cells[6]![4] = { color: 'b', kind: 'R' };
+  cells[wide.height - 1][4] = { color: 'w', kind: 'K' };
+  cells[0][0] = { color: 'b', kind: 'K' };
+  cells[6][4] = { color: 'b', kind: 'R' };
   const service = createGameService(() => 'unused');
   const white = service.create('host', { ...wide, cells });
   service.join('visitor', white.match.id);
@@ -52,9 +52,7 @@ void test('10x13 check highlights the attacked king and prioritizes the check ta
   const blackState = service.snapshot('visitor', white.match.id);
   assert.ok(whiteState?.state);
   assert.ok(blackState?.state);
-  assert.deepEqual(getCheckedKingPositions(whiteState.state.board), [
-    { x: 4, y: wide.height - 1 },
-  ]);
+  assert.deepEqual(getCheckedKingPositions(whiteState.state.board), [{ x: 4, y: wide.height - 1 }]);
   assert.equal(readMatchAttention(whiteState), 'check');
   assert.equal(readMatchAttention(blackState), null);
   service.execute('host', white.match.id, {

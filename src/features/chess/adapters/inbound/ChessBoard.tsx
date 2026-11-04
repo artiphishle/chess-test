@@ -70,22 +70,16 @@ interface SquareProps {
   readonly onSquare: (position: Position) => void;
 }
 
-/*** Preserve square accessibility while distinguishing coins from resolved pieces. */
+/*** Render an individual square without mixing piece presentation and gameplay state. */
 function Square({ cell, position, selected, hinted, checked, disabled, onSquare }: SquareProps) {
-  const { x, y } = position;
-  const active = selected?.x === x && selected.y === y;
-  const label =
-    cell?.kind === 'coin'
-      ? `Choice Coin ${cell.options.join('/')}`
-      : cell
-        ? `${cell.color === 'w' ? 'Weiss' : 'Schwarz'} ${cell.kind}`
-        : 'leer';
+  const active = selected?.x === position.x && selected.y === position.y;
+  const presentation = getSquarePresentation({ cell, position, active, hinted, checked });
   return (
     <button
       type="button"
-      aria-label={`Feld ${x + 1},${y + 1}: ${label}${checked ? ', im Schach' : ''}`}
+      aria-label={presentation.label}
       aria-pressed={active}
-      className={`square ${(x + y) % 2 === 0 ? 'light' : 'dark'}${active ? ' selected' : ''}${hinted ? ' legal' : ''}${checked ? ' in-check' : ''}`}
+      className={presentation.className}
       disabled={disabled}
       onClick={() => onSquare(position)}
     >
@@ -99,4 +93,33 @@ function Square({ cell, position, selected, hinted, checked, disabled, onSquare 
       {hinted ? <span className="legal-dot" /> : null}
     </button>
   );
+}
+
+interface SquarePresentation {
+  readonly cell: Cell;
+  readonly position: Position;
+  readonly active: boolean;
+  readonly hinted: boolean;
+  readonly checked: boolean;
+}
+
+/*** Keep checked-king accessibility labels consistent with the square's visual status. */
+function getSquarePresentation({
+  cell,
+  position,
+  active,
+  hinted,
+  checked,
+}: SquarePresentation) {
+  const { x, y } = position;
+  const pieceLabel =
+    cell?.kind === 'coin'
+      ? `Choice Coin ${cell.options.join('/')}`
+      : cell
+        ? `${cell.color === 'w' ? 'Weiss' : 'Schwarz'} ${cell.kind}`
+        : 'leer';
+  return {
+    label: `Feld ${x + 1},${y + 1}: ${pieceLabel}${checked ? ', im Schach' : ''}`,
+    className: `square ${(x + y) % 2 === 0 ? 'light' : 'dark'}${active ? ' selected' : ''}${hinted ? ' legal' : ''}${checked ? ' in-check' : ''}`,
+  };
 }
