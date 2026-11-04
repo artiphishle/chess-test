@@ -1,6 +1,5 @@
 'use client';
 
-import type { BoardInteraction } from '../../../chess/adapters/inbound/useBoardInteraction.ts';
 import { FinishedSidebar } from './FinishedSidebar.tsx';
 import { PlayingSidebar } from './PlayingSidebar.tsx';
 import { SetupSidebar } from './SetupSidebar.tsx';
@@ -9,11 +8,10 @@ import { WaitingSidebar } from './WaitingSidebar.tsx';
 
 interface Props {
   readonly session: MatchSession;
-  readonly interaction: BoardInteraction;
 }
 
 /*** Route game phase presentation without giving it authority over state transitions. */
-export function MatchSidebar({ session, interaction }: Props) {
+export function MatchSidebar({ session }: Props) {
   const phase = session.match?.phase;
   return (
     <aside className="panel side-panel">

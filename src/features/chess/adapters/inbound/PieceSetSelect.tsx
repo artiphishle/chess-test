@@ -12,7 +12,7 @@ export function PieceSetSelect() {
         aria-label="Figurendesign"
         value={pieceSet}
         onChange={(event) => {
-          const value = event.currentTarget.value;
+          const { value } = event.currentTarget;
           if (value === 'chessnut' || value === 'alpha' || value === 'companion') {
             selectPieceSet(value);
           }

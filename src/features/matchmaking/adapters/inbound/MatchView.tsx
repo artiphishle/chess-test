@@ -47,7 +47,7 @@ export function MatchView({ session, interaction }: Props) {
           </span>
         </div>
       </div>
-      <MatchSidebar session={session} interaction={interaction} />
+      <MatchSidebar session={session} />
     </section>
   );
 }
