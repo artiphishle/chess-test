@@ -18,7 +18,7 @@ export function useMatchPolling() {
     const serial = ++request.current;
     try {
       const next = await fetchMatchAsync();
-      if (serial !== request.current || mutating.current) return;
+      if (serial !== request.current) return;
       setMatches(next.matches);
       setLobby(next.lobby);
       const playable = next.matches.filter((match) => match.phase !== 'waiting');
