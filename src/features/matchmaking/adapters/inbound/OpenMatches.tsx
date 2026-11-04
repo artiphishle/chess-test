@@ -27,21 +27,24 @@ export function OpenMatches({ matches, mine, busy, onJoin, onCancel }: Props) {
           {matches.map((match) => {
             const owned = mine.some((entry) => entry.id === match.id);
             return (
-            <div className="open-match" key={match.id}>
-              <div>
-                <strong>{match.name}{owned ? ' · Deine Partie' : ''}</strong>
-                <small>
-                  {match.width} × {match.height} · {match.coins} Choice Coins
-                </small>
+              <div className="open-match" key={match.id}>
+                <div>
+                  <strong>
+                    {match.name}
+                    {owned ? ' · Deine Partie' : ''}
+                  </strong>
+                  <small>
+                    {match.width} × {match.height} · {match.coins} Choice Coins
+                  </small>
+                </div>
+                <Button
+                  variant={owned ? 'outline' : undefined}
+                  disabled={busy}
+                  onPress={() => (owned ? onCancel(match.id) : onJoin(match.id))}
+                >
+                  {owned ? 'Zurückziehen' : 'Beitreten'}
+                </Button>
               </div>
-              <Button
-                variant={owned ? 'outline' : undefined}
-                disabled={busy}
-                onPress={() => (owned ? onCancel(match.id) : onJoin(match.id))}
-              >
-                {owned ? 'Zurückziehen' : 'Beitreten'}
-              </Button>
-            </div>
             );
           })}
         </div>
