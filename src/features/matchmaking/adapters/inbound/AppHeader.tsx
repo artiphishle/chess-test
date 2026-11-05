@@ -38,7 +38,15 @@ export function AppHeader({ match, error, clearError, onName, onCommands }: Prop
         </div>
         <div className="header-controls">
           <PlayerNameEditor onName={onName} />
-          <button type="button" className="command-trigger" aria-label="Befehle öffnen" title="Befehle (/)" onClick={onCommands}>/</button>
+          <button
+            type="button"
+            className="command-trigger"
+            aria-label="Befehle öffnen"
+            title="Befehle (/)"
+            onClick={onCommands}
+          >
+            /
+          </button>
           <PieceSetSelect />
           <div className="header-status">
             <span className="status-light" />
