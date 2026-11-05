@@ -19,7 +19,9 @@ export function MatchView({ session, interaction, onResign }: Props) {
   const onSquare = useKingTaps({
     state: match?.phase === 'playing' ? match.state : null,
     color: match?.color ?? 'w',
-    onDraw: () => { void session.act({ action: 'draw' }); },
+    onDraw: () => {
+      void session.act({ action: 'draw' });
+    },
     onResign,
     onSquare: interaction.onSquare,
   });
