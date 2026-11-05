@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-
 import type { Cell, Position } from '../../../../types/chess.ts';
 import { ChessPiece } from './ChessPiece.tsx';
+import { useSquareGesture } from './useSquareGesture.ts';
 
 interface Props {
   readonly cells: readonly (readonly Cell[])[];
@@ -76,75 +75,16 @@ interface SquareProps {
   readonly onSquareLong?: (position: Position) => void;
 }
 
-/*** Render an individual square without mixing piece presentation and gameplay state. */
-function Square({
-  cell,
-  position,
-  selected,
-  hinted,
-  checked,
-  disabled,
-  onSquare,
-  onSquareLong,
-}: SquareProps) {
-  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const held = useRef(false);
-  /*** Cancel a pending gesture on release, interruption or unmount. */
-  const cancelHold = (): void => {
-    if (holdTimer.current !== null) clearTimeout(holdTimer.current);
-    holdTimer.current = null;
-  };
-  useEffect(
-    () => () => {
-      if (holdTimer.current !== null) clearTimeout(holdTimer.current);
-    },
-    [],
-  );
+/*** Render one square and delegate gesture timing to the interaction hook. */
+function Square({ cell, position, selected, hinted, checked, disabled, onSquare, onSquareLong }: SquareProps) {
   const active = selected?.x === position.x && selected.y === position.y;
   const presentation = getSquarePresentation({ cell, position, active, hinted, checked });
+  const gesture = useSquareGesture(position, onSquare, onSquareLong);
   return (
-    <button
-      type="button"
-      aria-label={presentation.label}
-      aria-pressed={active}
-      className={presentation.className}
-      disabled={disabled}
-      onPointerDown={(event) => {
-        if (!onSquareLong || (event.pointerType === 'mouse' && event.button !== 0)) return;
-        held.current = false;
-        cancelHold();
-        holdTimer.current = setTimeout(() => {
-          held.current = true;
-          onSquareLong(position);
-        }, 500);
-      }}
-      onPointerUp={cancelHold}
-      onPointerCancel={() => {
-        held.current = false;
-        cancelHold();
-      }}
-      onPointerLeave={cancelHold}
-      onContextMenu={(event) => {
-        if (onSquareLong) event.preventDefault();
-      }}
-      onKeyDown={(event) => {
-        if (event.shiftKey && event.key === 'Enter' && onSquareLong) {
-          event.preventDefault();
-          onSquareLong(position);
-        }
-      }}
-      onClick={() => {
-        if (held.current) {
-          held.current = false;
-          return;
-        }
-        onSquare(position);
-      }}
-    >
+    <button type="button" aria-label={presentation.label} aria-pressed={active}
+      className={presentation.className} disabled={disabled} {...gesture}>
       {cell?.kind === 'coin' ? (
-        <span className="coin" title={cell.options.join('/')}>
-          C
-        </span>
+        <span className="coin" title={cell.options.join('/')}>C</span>
       ) : cell ? (
         <ChessPiece piece={cell} />
       ) : null}
