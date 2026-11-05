@@ -99,6 +99,10 @@
   --glow: #a4b3d666;
   --accent-contrast: #ffffff;
 }
+.app-shell[data-brand-theme='navy'],
+.app-shell[data-brand-theme='rose-noir'] {
+  color-scheme: light;
+}
 .app-shell[data-brand-theme='rose-noir'] {
   --bg: #fbf3f5;
   --panel: #ffffff;
@@ -133,11 +137,9 @@
 .app-shell .brand-wordmark {
   display: block;
   width: 120px;
-  height: 62px;
+  height: 79px;
   flex-shrink: 0;
-  background: var(--accent);
-  -webkit-mask: url('/brand/wordmark.svg') center / contain no-repeat;
-  mask: url('/brand/wordmark.svg') center / contain no-repeat;
+  object-fit: contain;
 }
 .app-shell .brand-theme-name {
   color: var(--muted);
@@ -313,7 +315,7 @@
   }
   .app-shell .brand-wordmark {
     width: 100px;
-    height: 52px;
+    height: 66px;
   }
   .app-shell .brand-theme-name {
     font-size: 10px;

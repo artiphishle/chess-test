@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 
 import { useBoardTheme } from '../../../branding/adapters/inbound/useBoardTheme.ts';
@@ -23,7 +24,15 @@ export function AppHeader({ match, error, clearError, onName, onCommands }: Prop
     <>
       <header className="app-header">
         <Link className="brand" href="/" aria-label="GrossMeister Startseite">
-          <span className="brand-wordmark" role="img" aria-label="GM GrossMeister" />
+          <Image
+            className="brand-wordmark"
+            src={boardTheme.wordmark}
+            alt="GM GrossMeister"
+            width={120}
+            height={79}
+            priority
+            unoptimized
+          />
           <span className="brand-theme-name">{boardTheme.name}</span>
         </Link>
         <div className="header-controls">
