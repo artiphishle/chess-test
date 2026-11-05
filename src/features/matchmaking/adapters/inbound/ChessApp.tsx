@@ -8,9 +8,8 @@ import { PieceSetProvider } from '../../../chess/adapters/inbound/PieceSetProvid
 import { useBoardInteraction } from '../../../chess/adapters/inbound/useBoardInteraction.ts';
 import { useTemplateLibrary } from '../../../templates/adapters/inbound/useTemplateLibrary.ts';
 import { AppHeader } from './AppHeader.tsx';
-import { getPlayerName } from './getPlayerName.ts';
 import { sendGameCommandAsync } from './sendGameCommandAsync.ts';
-import { LobbyView } from './LobbyView.tsx';
+import { LobbyMatchContent } from './LobbyMatchContent.tsx';
 import { MatchTabs } from './MatchTabs.tsx';
 import { MatchView } from './MatchView.tsx';
 import { PromotionDialog } from './PromotionDialog.tsx';
@@ -45,25 +44,7 @@ export function ChessApp() {
                 session={session}
               />
             ) : (
-              <LobbyView
-                library={library}
-                busy={session.busy}
-                lobby={session.lobby}
-                mine={session.matches.filter((match) => match.phase === 'waiting')}
-                onCancel={(matchId) => {
-                  void session.act({ action: 'leave', matchId });
-                }}
-                onPlay={() => {
-                  void session.act({
-                    action: 'create',
-                    template: library.template,
-                    name: getPlayerName(),
-                  });
-                }}
-                onJoin={(matchId) => {
-                  void session.act({ action: 'join', matchId, name: getPlayerName() });
-                }}
-              />
+              <LobbyMatchContent session={session} library={library} />
             )}
           </div>
           <footer>
