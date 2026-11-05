@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+
 import { createPresets } from '../../templates/domain/createPresets.ts';
 import { applyCheat } from './applyCheat.ts';
 import { createGameState } from './createGameState.ts';
