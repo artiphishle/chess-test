@@ -37,7 +37,7 @@ export function createPresets(): readonly Template[] {
       name: 'Matttraining K + B + N',
       width: 8,
       height: 8,
-      turn: 'random',
+      turn: 'w',
       cells: endgame,
     },
   ];
@@ -63,5 +63,5 @@ function createRanked(
       cells[pawn]![x] = { color, kind: 'P' };
     }
   }
-  return { id, name, width, height, turn: 'random', cells };
+  return { id, name, width, height, turn: 'w', cells };
 }
