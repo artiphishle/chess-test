@@ -56,7 +56,10 @@ export function AppHeader({ match, error, clearError, onName }: Props) {
         <div className="header-controls">
           <div className="player-name">
             {editing ? (
-              <input aria-label="Spielername" maxLength={32} value={name}
+              <input
+                aria-label="Spielername"
+                maxLength={32}
+                value={name}
                 onChange={(event) => changeName(event.target.value)}
                 onBlur={() => {
                   if (!name.trim()) changeName('Gast');
@@ -64,10 +67,15 @@ export function AppHeader({ match, error, clearError, onName }: Props) {
                 }}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter') event.currentTarget.blur();
-                }} />
+                }}
+              />
             ) : (
-              <button type="button" onClick={() => setEditing(true)}
-                aria-label={`Spielername bearbeiten: ${name}`} title="Spielername bearbeiten">
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                aria-label={`Spielername bearbeiten: ${name}`}
+                title="Spielername bearbeiten"
+              >
                 {name} <span aria-hidden="true">✎</span>
               </button>
             )}

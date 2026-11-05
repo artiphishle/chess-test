@@ -354,12 +354,14 @@ function validateCoinChoices(
     ),
   );
   if (Object.keys(provided).length !== required.length) throw new Error('Incomplete coin choices');
-  return Object.fromEntries(required.map(({ key, options }) => {
-    const kind = provided[key];
-    if (typeof kind !== 'string' || !options.includes(kind as PieceKind))
-      throw new Error('Choice not allowed');
-    return [key, kind as PieceKind];
-  }));
+  return Object.fromEntries(
+    required.map(({ key, options }) => {
+      const kind = provided[key];
+      if (typeof kind !== 'string' || !options.includes(kind as PieceKind))
+        throw new Error('Choice not allowed');
+      return [key, kind as PieceKind];
+    }),
+  );
 }
 
 /*** Accept small, non-control-character player names only. */

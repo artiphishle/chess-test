@@ -27,7 +27,12 @@ export function ChessApp() {
     <ZoraProvider theme={theme} initialMode="dark">
       <PieceSetProvider>
         <main className="app-shell">
-          <AppHeader match={session.match} error={session.error} clearError={session.clearError} onName={rename} />
+          <AppHeader
+            match={session.match}
+            error={session.error}
+            clearError={session.clearError}
+            onName={rename}
+          />
           <div className="page-content">
             <MatchTabs
               matches={session.matches}
@@ -35,7 +40,10 @@ export function ChessApp() {
               onSelect={session.selectMatch}
             />
             {session.match ? (
-              <ActiveMatchContent key={`${session.match.id}:${session.match.phase}`} session={session} />
+              <ActiveMatchContent
+                key={`${session.match.id}:${session.match.phase}`}
+                session={session}
+              />
             ) : (
               <LobbyView
                 library={library}
@@ -46,7 +54,11 @@ export function ChessApp() {
                   void session.act({ action: 'leave', matchId });
                 }}
                 onPlay={() => {
-                  void session.act({ action: 'create', template: library.template, name: getPlayerName() });
+                  void session.act({
+                    action: 'create',
+                    template: library.template,
+                    name: getPlayerName(),
+                  });
                 }}
                 onJoin={(matchId) => {
                   void session.act({ action: 'join', matchId, name: getPlayerName() });

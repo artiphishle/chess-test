@@ -77,7 +77,16 @@ interface SquareProps {
 }
 
 /*** Render an individual square without mixing piece presentation and gameplay state. */
-function Square({ cell, position, selected, hinted, checked, disabled, onSquare, onSquareLong }: SquareProps) {
+function Square({
+  cell,
+  position,
+  selected,
+  hinted,
+  checked,
+  disabled,
+  onSquare,
+  onSquareLong,
+}: SquareProps) {
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const held = useRef(false);
   /*** Cancel a pending gesture on release, interruption or unmount. */
@@ -85,9 +94,12 @@ function Square({ cell, position, selected, hinted, checked, disabled, onSquare,
     if (holdTimer.current !== null) clearTimeout(holdTimer.current);
     holdTimer.current = null;
   };
-  useEffect(() => () => {
-    if (holdTimer.current !== null) clearTimeout(holdTimer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (holdTimer.current !== null) clearTimeout(holdTimer.current);
+    },
+    [],
+  );
   const active = selected?.x === position.x && selected.y === position.y;
   const presentation = getSquarePresentation({ cell, position, active, hinted, checked });
   return (

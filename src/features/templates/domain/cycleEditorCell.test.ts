@@ -10,7 +10,10 @@ void test('taps cycle empty through six fixed pieces and back to empty', () => {
   const third = cycleEditorCell(second, 'tap');
   assert.equal(second?.kind, 'N');
   assert.equal(third?.kind, 'B');
-  assert.equal([0, 1, 2, 3].reduce<Cell>((cell) => cycleEditorCell(cell, 'tap'), third), null);
+  assert.equal(
+    [0, 1, 2, 3].reduce<Cell>((cell) => cycleEditorCell(cell, 'tap'), third),
+    null,
+  );
 });
 
 void test('holds cycle white, black, choice coin and white without resetting fixed piece kind', () => {

@@ -32,9 +32,25 @@ export function useBoardInteraction(session: MatchSession): BoardInteraction {
     if (match.state.turn !== match.color) return [];
     return getLegalMoves(match.state, selected);
   }, [match, selected]);
-  const actions = createBoardActions({ session, selected, setSelected, promotion, setPromotion, draft, setDraft, legal });
-  return { cells, selected, promotion, choices: match?.ready[match.color] ? match.choices : draft,
-    legal, ...actions, cancelPromotion: () => setPromotion(null) };
+  const actions = createBoardActions({
+    session,
+    selected,
+    setSelected,
+    promotion,
+    setPromotion,
+    draft,
+    setDraft,
+    legal,
+  });
+  return {
+    cells,
+    selected,
+    promotion,
+    choices: match?.ready[match.color] ? match.choices : draft,
+    legal,
+    ...actions,
+    cancelPromotion: () => setPromotion(null),
+  };
 }
 
 /*** Replace only the local player's coins with privately previewed choices. */

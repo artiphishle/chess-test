@@ -807,7 +807,8 @@ footer span {
 }
 
 /* Auto-saved anonymous player name, edited directly in the header. */
-.player-name button, .player-name input {
+.player-name button,
+.player-name input {
   border: 1px solid var(--border);
   background: var(--panel);
   color: var(--text);
@@ -815,6 +816,14 @@ footer span {
   padding: 8px 10px;
   max-width: 160px;
 }
-.player-name button { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.player-name button span { color: var(--accent); }
-.player-name input { width: 150px; }
+.player-name button {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.player-name button span {
+  color: var(--accent);
+}
+.player-name input {
+  width: 150px;
+}

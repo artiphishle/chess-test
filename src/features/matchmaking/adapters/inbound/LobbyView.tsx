@@ -21,9 +21,14 @@ export function LobbyView({ library, busy, onPlay, lobby, mine, onJoin, onCancel
   return (
     <>
       <LobbyHero busy={busy} onPlay={onPlay} />
-      <TemplateEditor template={library.template} templates={library.templates}
-        onSelect={library.setTemplate} onUpdate={library.setTemplate}
-        onSave={library.save} onDelete={library.remove} />
+      <TemplateEditor
+        template={library.template}
+        templates={library.templates}
+        onSelect={library.setTemplate}
+        onUpdate={library.setTemplate}
+        onSave={library.save}
+        onDelete={library.remove}
+      />
       <OpenMatches matches={lobby} mine={mine} busy={busy} onJoin={onJoin} onCancel={onCancel} />
     </>
   );

@@ -30,16 +30,27 @@ export function SetupSidebar({ session, interaction }: Props) {
         Figuren. Die gegnerische Auswahl bleibt bis zum Spielstart verborgen.
       </p>
       <div className="ready-status">
-        <strong>{resolved} / {coins.length} Figuren gewählt</strong>
+        <strong>
+          {resolved} / {coins.length} Figuren gewählt
+        </strong>
         <div>Du: {ownReady ? 'Bereit ✓' : 'Wählst Figuren'}</div>
         <div>Gegner: {opponentReady ? 'Bereit ✓' : 'Wählt Figuren'}</div>
       </div>
-      <Button disabled={session.busy || ownReady || resolved !== coins.length}
-        onPress={interaction.confirmChoices}>
+      <Button
+        disabled={session.busy || ownReady || resolved !== coins.length}
+        onPress={interaction.confirmChoices}
+      >
         {ownReady ? 'Auswahl bestätigt ✓' : 'Bereit – Auswahl bestätigen'}
       </Button>
-      <Button variant="ghost" disabled={session.busy}
-        onPress={() => { void session.leave(); }}>Zurück zum Start</Button>
+      <Button
+        variant="ghost"
+        disabled={session.busy}
+        onPress={() => {
+          void session.leave();
+        }}
+      >
+        Zurück zum Start
+      </Button>
     </>
   );
 }

@@ -56,24 +56,41 @@ void test('owned coin choices are sent atomically, private, and locked only afte
   const selectedWhite = coinChoices(wide, 'w', 'N');
   const selectedBlack = coinChoices(wide, 'b', 'B');
   assert.equal(Object.keys(selectedWhite).length, 6);
-  assert.throws(() => service.execute('white', white.match.id, {
-    action: 'ready', choices: { ...selectedWhite, '1:0': 'N' },
-  }), /Incomplete/);
-  assert.throws(() => service.execute('white', white.match.id, {
-    action: 'ready', choices: { ...selectedWhite, '1:12': 'Q' },
-  }), /not allowed/);
+  assert.throws(
+    () =>
+      service.execute('white', white.match.id, {
+        action: 'ready',
+        choices: { ...selectedWhite, '1:0': 'N' },
+      }),
+    /Incomplete/,
+  );
+  assert.throws(
+    () =>
+      service.execute('white', white.match.id, {
+        action: 'ready',
+        choices: { ...selectedWhite, '1:12': 'Q' },
+      }),
+    /not allowed/,
+  );
   assert.deepEqual(service.snapshot('white', white.match.id)?.choices, {});
   const own = service.execute('white', white.match.id, {
-    action: 'ready', choices: selectedWhite,
+    action: 'ready',
+    choices: selectedWhite,
   });
   assert.equal(own?.ready.w, true);
   assert.equal(own?.phase, 'setup');
   assert.deepEqual(service.snapshot('black', white.match.id)?.choices, {});
-  assert.throws(() => service.execute('white', white.match.id, {
-    action: 'ready', choices: selectedWhite,
-  }), /locked/);
+  assert.throws(
+    () =>
+      service.execute('white', white.match.id, {
+        action: 'ready',
+        choices: selectedWhite,
+      }),
+    /locked/,
+  );
   const done = service.execute('black', white.match.id, {
-    action: 'ready', choices: selectedBlack,
+    action: 'ready',
+    choices: selectedBlack,
   });
   assert.equal(done?.phase, 'playing');
   assert.equal(done?.state?.board[12]?.[1]?.kind, 'N');
@@ -89,12 +106,18 @@ void test('free coins permit any piece and reject foreign coordinates', () => {
   const template = { ...standard, cells };
   const offer = service.create('white', template);
   service.join('black', offer.match.id);
-  assert.throws(() => service.execute('white', offer.match.id, {
-    action: 'ready', choices: { '1:0': 'Q' },
-  }), /not allowed/);
+  assert.throws(
+    () =>
+      service.execute('white', offer.match.id, {
+        action: 'ready',
+        choices: { '1:0': 'Q' },
+      }),
+    /not allowed/,
+  );
   service.execute('white', offer.match.id, { action: 'ready', choices: { '1:7': 'R' } });
   const done = service.execute('black', offer.match.id, {
-    action: 'ready', choices: { '1:0': 'Q' },
+    action: 'ready',
+    choices: { '1:0': 'Q' },
   });
   assert.equal(done?.state?.board[7]?.[1]?.kind, 'R');
   assert.equal(done?.state?.board[0]?.[1]?.kind, 'Q');
@@ -104,20 +127,38 @@ void test('normal turns remain server-authoritative and replays reset choices', 
   const service = sessions();
   const offer = service.create('a', standard);
   service.join('b', offer.match.id);
-  assert.throws(() => service.execute('b', offer.match.id, {
-    action: 'move', move: { from: { x: 4, y: 1 }, to: { x: 4, y: 3 } },
-  }), /Not your turn/);
-  assert.equal(service.execute('a', offer.match.id, {
-    action: 'move', move: { from: { x: 4, y: 6 }, to: { x: 4, y: 4 } },
-  })?.state?.turn, 'b');
+  assert.throws(
+    () =>
+      service.execute('b', offer.match.id, {
+        action: 'move',
+        move: { from: { x: 4, y: 1 }, to: { x: 4, y: 3 } },
+      }),
+    /Not your turn/,
+  );
+  assert.equal(
+    service.execute('a', offer.match.id, {
+      action: 'move',
+      move: { from: { x: 4, y: 6 }, to: { x: 4, y: 4 } },
+    })?.state?.turn,
+    'b',
+  );
   service.execute('a', offer.match.id, { action: 'resign' });
   assert.equal(service.execute('a', offer.match.id, { action: 'rematch' })?.phase, 'finished');
   assert.equal(service.execute('b', offer.match.id, { action: 'rematch' })?.phase, 'playing');
-  assert.throws(() => service.execute('outsider', offer.match.id, { action: 'resign' }), /No active/);
+  assert.throws(
+    () => service.execute('outsider', offer.match.id, { action: 'resign' }),
+    /No active/,
+  );
   const coinOffer = service.create('a', wide);
   service.join('c', coinOffer.match.id);
-  service.execute('a', coinOffer.match.id, { action: 'ready', choices: coinChoices(wide, 'w', 'N') });
-  service.execute('c', coinOffer.match.id, { action: 'ready', choices: coinChoices(wide, 'b', 'B') });
+  service.execute('a', coinOffer.match.id, {
+    action: 'ready',
+    choices: coinChoices(wide, 'w', 'N'),
+  });
+  service.execute('c', coinOffer.match.id, {
+    action: 'ready',
+    choices: coinChoices(wide, 'b', 'B'),
+  });
   service.execute('a', coinOffer.match.id, { action: 'resign' });
   service.execute('a', coinOffer.match.id, { action: 'rematch' });
   const reset = service.execute('c', coinOffer.match.id, { action: 'rematch' });
@@ -128,8 +169,16 @@ void test('normal turns remain server-authoritative and replays reset choices', 
 
 void test('random starts are decided server-side with injected randomness', () => {
   const template: Template = { ...standard, turn: 'random' };
-  const one = createGameService(() => 'id-one', () => 0, () => 0);
-  const two = createGameService(() => 'id-two', () => 0, () => 0.9);
+  const one = createGameService(
+    () => 'id-one',
+    () => 0,
+    () => 0,
+  );
+  const two = createGameService(
+    () => 'id-two',
+    () => 0,
+    () => 0.9,
+  );
   const a = one.create('a', template);
   const b = two.create('a', template);
   assert.equal(one.join('b', a.match.id).match.state?.turn, 'w');
@@ -155,13 +204,19 @@ void test('names are visible, autosave compatible and safely validated', () => {
 void test('lobby presence holds active offers and cleans up absent hosts', () => {
   const now = { value: 0 };
   const counter = { value: 0 };
-  const service = createGameService(() => `id-${++counter.value}`, () => now.value);
+  const service = createGameService(
+    () => `id-${++counter.value}`,
+    () => now.value,
+  );
   const live = service.create('live', standard);
   const silent = service.create('silent', standard);
   now.value = 70_000;
   assert.equal(service.games('live').length, 1);
   now.value = 100_000;
-  assert.deepEqual(service.lobby().map((offer) => offer.id), [live.match.id]);
+  assert.deepEqual(
+    service.lobby().map((offer) => offer.id),
+    [live.match.id],
+  );
   assert.equal(service.snapshot('silent', silent.match.id), null);
   assert.throws(() => service.join('late', silent.match.id), /nicht mehr verfügbar/);
   now.value = 159_000;
