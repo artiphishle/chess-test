@@ -1,0 +1,23 @@
+name: Temporary formatting export
+on:
+  push:
+    branches: [feat/gesture-first-editor-13]
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - name: Format and export exact changes
+        run: |
+          bun run format
+          for path in src/app/globals.css src/features/templates/adapters/inbound/TemplateEditor.tsx src/features/templates/adapters/inbound/useEditorBoardGestures.ts src/features/templates/domain/resizeTemplate.test.ts src/features/templates/domain/resizeTemplate.ts; do
+            echo "__FORMAT_START__${path}"
+            sed 's/^/__FORMAT_LINE__/' "$path"
+            echo "__FORMAT_END__${path}"
+          done
