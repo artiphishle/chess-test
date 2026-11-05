@@ -2,7 +2,7 @@
 
 import { useRef } from 'react';
 
-import type { Color, GameState, Position } from '../../../types/chess.ts';
+import type { Color, GameState, Position } from '../../../../types/chess.ts';
 
 interface Actions {
   readonly state: GameState | null;
