@@ -805,3 +805,58 @@ footer span {
   text-shadow: 0 1px 2px #4a0a17;
   pointer-events: none;
 }
+
+/* Board-first configuration keeps controls on the board edges. */
+.compact-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin: 0 0 22px;
+}
+.compact-hero h1 {
+  font-size: clamp(26px, 4vw, 42px);
+  line-height: 1.1;
+  margin: 6px 0;
+  letter-spacing: -0.045em;
+}
+.compact-hero h1 em { color: var(--accent); font-style: normal; }
+.compact-hero p { margin: 0; }
+.editor-board { margin-bottom: 22px; }
+.editor-toolbar {
+  display: flex;
+  align-items: end;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.editor-preset { display: grid; gap: 4px; min-width: min(300px, 100%); color: var(--muted); font-size: 12px; }
+.editor-preset select { background: #0d1720; color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 9px; }
+.turn-picker { display: flex; gap: 5px; }
+.turn-picker button, .editor-resize button, .editor-save button {
+  border: 1px solid #3c4b55;
+  background: #233341;
+  border-radius: 9px;
+  color: var(--text);
+  min-width: 36px;
+  min-height: 36px;
+}
+.turn-picker button[aria-pressed='true'] { background: #355a4a; border-color: var(--accent); }
+.editor-resize { display: flex; justify-content: center; align-items: center; gap: 12px; font-size: 12px; color: var(--muted); margin-bottom: 9px; }
+.editor-board-and-rows { display: flex; align-items: center; gap: 8px; }
+.editor-board-and-rows > .board-scroll { min-width: 0; flex: 1; }
+.editor-resize.vertical { flex-direction: column; min-width: 42px; margin: 0; }
+.editor-resize.vertical span { writing-mode: vertical-rl; }
+.editor-help { margin-bottom: 7px; }
+.editor-save { border-top: 1px solid var(--border); padding-top: 14px; color: var(--muted); font-size: 13px; }
+.editor-save summary { cursor: pointer; }
+.editor-save .field-label { margin: 12px 0; }
+.editor-save .action-row { margin: 12px 0; }
+.editor-save button { padding: 6px 12px; }
+.editor-board .square { touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+@media (max-width: 540px) {
+  .compact-hero { flex-wrap: wrap; }
+  .editor-preset { min-width: 100%; }
+  .editor-toolbar { gap: 10px; }
+}

@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
+
 import type { Cell, Position } from '../../../../types/chess.ts';
 import { ChessPiece } from './ChessPiece.tsx';
 
@@ -13,6 +15,7 @@ interface Props {
   readonly checkedKings?: readonly Position[];
   readonly disabled?: boolean;
   readonly onSquare: (position: Position) => void;
+  readonly onSquareLong?: (position: Position) => void;
 }
 
 /*** Render accessible rectangular chess grids with optional black orientation. */
@@ -26,6 +29,7 @@ export function ChessBoard({
   checkedKings = [],
   disabled = false,
   onSquare,
+  onSquareLong,
 }: Props) {
   const rows = Array.from({ length: height }, (_, index) => (flipped ? height - 1 - index : index));
   const cols = Array.from({ length: width }, (_, index) => (flipped ? width - 1 - index : index));
@@ -52,6 +56,7 @@ export function ChessBoard({
               checked={checkedKings.some((target) => target.x === x && target.y === y)}
               disabled={disabled}
               onSquare={onSquare}
+              onSquareLong={onSquareLong}
             />
           )),
         )}
@@ -71,7 +76,17 @@ interface SquareProps {
 }
 
 /*** Render an individual square without mixing piece presentation and gameplay state. */
-function Square({ cell, position, selected, hinted, checked, disabled, onSquare }: SquareProps) {
+function Square({ cell, position, selected, hinted, checked, disabled, onSquare, onSquareLong }: SquareProps) {
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const held = useRef(false);
+  /*** Cancel a pending gesture on release, interruption or unmount. */
+  const cancelHold = (): void => {
+    if (holdTimer.current !== null) clearTimeout(holdTimer.current);
+    holdTimer.current = null;
+  };
+  useEffect(() => () => {
+    if (holdTimer.current !== null) clearTimeout(holdTimer.current);
+  }, []);
   const active = selected?.x === position.x && selected.y === position.y;
   const presentation = getSquarePresentation({ cell, position, active, hinted, checked });
   return (
@@ -81,7 +96,37 @@ function Square({ cell, position, selected, hinted, checked, disabled, onSquare 
       aria-pressed={active}
       className={presentation.className}
       disabled={disabled}
-      onClick={() => onSquare(position)}
+      onPointerDown={(event) => {
+        if (!onSquareLong || (event.pointerType === 'mouse' && event.button !== 0)) return;
+        held.current = false;
+        cancelHold();
+        holdTimer.current = setTimeout(() => {
+          held.current = true;
+          onSquareLong(position);
+        }, 500);
+      }}
+      onPointerUp={cancelHold}
+      onPointerCancel={() => {
+        held.current = false;
+        cancelHold();
+      }}
+      onPointerLeave={cancelHold}
+      onContextMenu={(event) => {
+        if (onSquareLong) event.preventDefault();
+      }}
+      onKeyDown={(event) => {
+        if (event.shiftKey && event.key === 'Enter' && onSquareLong) {
+          event.preventDefault();
+          onSquareLong(position);
+        }
+      }}
+      onClick={() => {
+        if (held.current) {
+          held.current = false;
+          return;
+        }
+        onSquare(position);
+      }}
     >
       {cell?.kind === 'coin' ? (
         <span className="coin" title={cell.options.join('/')}>

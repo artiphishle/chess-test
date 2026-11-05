@@ -3,7 +3,6 @@
 import { TemplateEditor } from '../../../templates/adapters/inbound/TemplateEditor.tsx';
 import type { TemplateLibrary } from '../../../templates/adapters/inbound/useTemplateLibrary.ts';
 import { LobbyHero } from './LobbyHero.tsx';
-import { LobbyPreview } from './LobbyPreview.tsx';
 import { OpenMatches } from './OpenMatches.tsx';
 import type { MatchSession } from './useMatchSession.ts';
 
@@ -17,24 +16,15 @@ interface Props {
   readonly onJoin: (matchId: string) => void;
 }
 
-/*** Present a lobby board preview or the unlocked template editor before joining. */
+/*** Keep the editable board visible above the public multi-match lobby. */
 export function LobbyView({ library, busy, onPlay, lobby, mine, onJoin, onCancel }: Props) {
   return (
     <>
-      <LobbyHero library={library} busy={busy} onPlay={onPlay} />
+      <LobbyHero busy={busy} onPlay={onPlay} />
+      <TemplateEditor template={library.template} templates={library.templates}
+        onSelect={library.setTemplate} onUpdate={library.setTemplate}
+        onSave={library.save} onDelete={library.remove} />
       <OpenMatches matches={lobby} mine={mine} busy={busy} onJoin={onJoin} onCancel={onCancel} />
-      {library.editing ? (
-        <TemplateEditor
-          template={library.template}
-          templates={library.templates}
-          onSelect={library.setTemplate}
-          onUpdate={library.setTemplate}
-          onSave={library.save}
-          onDelete={library.remove}
-        />
-      ) : (
-        <LobbyPreview library={library} />
-      )}
     </>
   );
 }

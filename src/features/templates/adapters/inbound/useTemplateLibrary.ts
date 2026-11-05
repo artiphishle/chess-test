@@ -7,18 +7,15 @@ import { createPresets } from '../../domain/createPresets.ts';
 export interface TemplateLibrary {
   readonly template: Template;
   readonly templates: readonly Template[];
-  readonly editing: boolean;
-  readonly setEditing: (value: boolean | ((previous: boolean) => boolean)) => void;
   readonly setTemplate: (template: Template) => void;
   readonly save: (name: string) => void;
   readonly remove: (id: string) => void;
 }
 
-/*** Keep local reusable templates separate from live match snapshots. */
+/*** Keep editable local presets independent of every server-locked match snapshot. */
 export function useTemplateLibrary(): TemplateLibrary {
-  const [template, setTemplate] = useState<Template>(presets[0]);
+  const [template, setTemplate] = useState<Template>(presets[0]!);
   const [saved, setSaved] = useState<readonly Template[]>([]);
-  const [editing, setEditing] = useState(false);
   useEffect(() => {
     const frame = requestAnimationFrame(() => setSaved(loadSavedTemplates()));
     return () => cancelAnimationFrame(frame);
@@ -31,26 +28,17 @@ export function useTemplateLibrary(): TemplateLibrary {
     const next = { ...template, id: crypto.randomUUID(), name };
     persist([...saved, next]);
     setTemplate(next);
-    setEditing(false);
   };
   const remove = (id: string): void => {
     persist(saved.filter((entry) => entry.id !== id));
-    setTemplate(presets[0]);
+    setTemplate(presets[0]!);
   };
-  return {
-    template,
-    templates: [...presets, ...saved],
-    editing,
-    setEditing,
-    setTemplate,
-    save,
-    remove,
-  };
+  return { template, templates: [...presets, ...saved], setTemplate, save, remove };
 }
 
 const presets = createPresets();
 
-/*** Read only plausibly shaped local templates after browser hydration. */
+/*** Read plausible local template objects without trusting browser storage as validated input. */
 function loadSavedTemplates(): readonly Template[] {
   try {
     const parsed = JSON.parse(localStorage.getItem('chess-test-templates') ?? '[]') as unknown;
