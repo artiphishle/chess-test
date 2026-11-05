@@ -4,17 +4,26 @@ import { ChessBoard } from '../../../chess/adapters/inbound/ChessBoard.tsx';
 import type { BoardInteraction } from '../../../chess/adapters/inbound/useBoardInteraction.ts';
 import { getCheckedKingPositions } from '../../../chess/domain/getCheckedKingPositions.ts';
 import { MatchSidebar } from './MatchSidebar.tsx';
+import { useKingTaps } from './useKingTaps.ts';
 import type { MatchSession } from './useMatchSession.ts';
 
 interface Props {
   readonly session: MatchSession;
   readonly interaction: BoardInteraction;
+  readonly onResign: () => void;
 }
 
 /*** Display the live board with color orientation and a phase-specific sidebar. */
-export function MatchView({ session, interaction }: Props) {
+export function MatchView({ session, interaction, onResign }: Props) {
   const { match } = session;
   if (!match) return null;
+  const onSquare = useKingTaps({
+    state: match.phase === 'playing' ? match.state : null,
+    color: match.color,
+    onDraw: () => { void session.act({ action: 'draw' }); },
+    onResign,
+    onSquare: interaction.onSquare,
+  });
   const checkedKings = match.state ? getCheckedKingPositions(match.state.board) : [];
   const title = {
     waiting: 'Warte auf Gegner',
@@ -39,7 +48,7 @@ export function MatchView({ session, interaction }: Props) {
           selected={interaction.selected}
           hints={interaction.legal.map((move) => move.to)}
           checkedKings={checkedKings}
-          onSquare={interaction.onSquare}
+          onSquare={onSquare}
         />
         <div className="board-footer">
           <span>
@@ -53,7 +62,7 @@ export function MatchView({ session, interaction }: Props) {
           </span>
         </div>
       </div>
-      <MatchSidebar session={session} interaction={interaction} />
+      <MatchSidebar session={session} interaction={interaction} onResign={onResign} />
     </section>
   );
 }
