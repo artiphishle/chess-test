@@ -62,9 +62,7 @@ export function ChessApp() {
               onConfirm={commands.confirmResign}
             />
           ) : null}
-          <footer>
-            ANKHORAGE · CHESS TEST <span>Variable boards. Real chess rules.</span>
-          </footer>
+          <AppFooter />
         </main>
       </PieceSetProvider>
     </ZoraProvider>
@@ -97,3 +95,8 @@ const theme = {
   primaryColor: '#b5e0ac',
   harmony: 'analogous',
 } as const;
+
+/*** Keep the application footer independent from interaction wiring. */
+function AppFooter() {
+  return <footer>ANKHORAGE · CHESS TEST <span>Variable boards. Real chess rules.</span></footer>;
+}
