@@ -25,12 +25,7 @@ export function MatchView({ session, interaction, onResign }: Props) {
   });
   if (!match) return null;
   const checkedKings = match.state ? getCheckedKingPositions(match.state.board) : [];
-  const title = {
-    waiting: 'Warte auf Gegner',
-    setup: 'Figuren wählen',
-    playing: 'Deine Partie',
-    finished: 'Partie beendet',
-  }[match.phase];
+  const title = titles[match.phase];
   return (
     <section className="match-layout">
       <div className="panel board-panel">
