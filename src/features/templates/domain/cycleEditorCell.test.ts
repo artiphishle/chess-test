@@ -10,7 +10,10 @@ void test('first short tap sets a white pawn, then cycles pieces before becoming
   const bishop = cycleEditorCell(knight, 'tap', 'w');
   assert.deepEqual(knight, { color: 'w', kind: 'N' });
   assert.deepEqual(bishop, { color: 'w', kind: 'B' });
-  assert.equal([0, 1, 2, 3].reduce<Cell>((cell) => cycleEditorCell(cell, 'tap', 'w'), bishop), null);
+  assert.equal(
+    [0, 1, 2, 3].reduce<Cell>((cell) => cycleEditorCell(cell, 'tap', 'w'), bishop),
+    null,
+  );
 });
 
 void test('black mode remains black for all taps including on previously white or empty cells', () => {
@@ -18,7 +21,10 @@ void test('black mode remains black for all taps including on previously white o
   assert.deepEqual(black, { color: 'b', kind: 'P' });
   assert.deepEqual(cycleEditorCell(black, 'tap', 'b'), { color: 'b', kind: 'N' });
   assert.deepEqual(cycleEditorCell(null, 'tap', 'b'), { color: 'b', kind: 'P' });
-  assert.deepEqual(cycleEditorCell({ color: 'w', kind: 'B' }, 'tap', 'b'), { color: 'b', kind: 'P' });
+  assert.deepEqual(cycleEditorCell({ color: 'w', kind: 'B' }, 'tap', 'b'), {
+    color: 'b',
+    kind: 'P',
+  });
 });
 
 void test('hold transitions from fixed black piece through coin and back to white piece', () => {
