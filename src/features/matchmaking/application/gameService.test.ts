@@ -44,65 +44,59 @@ void test('a queued template remains an immutable snapshot', () => {
   const service = sessions();
   const template = structuredClone(standard);
   const offer = service.create('host', template);
-  (template.cells as unknown[][])[0]![0] = null;
+  (template.cells as unknown[][])[0][0] = null;
   assert.equal(service.snapshot('host', offer.match.id)?.template.cells[0]?.[0]?.kind, 'R');
 });
 
-void test('owned coin choices are sent atomically, private, and locked only after Ready', () => {
+void test('server rejects incomplete or forbidden private coin selections', () => {
   const service = sessions();
-  const white = service.create('white', wide);
-  const black = service.join('black', white.match.id);
-  assert.equal(black.match.phase, 'setup');
-  const selectedWhite = coinChoices(wide, 'w', 'N');
-  const selectedBlack = coinChoices(wide, 'b', 'B');
-  assert.equal(Object.keys(selectedWhite).length, 6);
+  const offer = service.create('white', wide);
+  service.join('black', offer.match.id);
+  const white = coinChoices(wide, 'w', 'N');
+  assert.equal(Object.keys(white).length, 6);
   assert.throws(
-    () =>
-      service.execute('white', white.match.id, {
-        action: 'ready',
-        choices: { ...selectedWhite, '1:0': 'N' },
-      }),
+    () => service.execute('white', offer.match.id, {
+      action: 'ready', choices: { ...white, '1:0': 'N' },
+    }),
     /Incomplete/,
   );
   assert.throws(
-    () =>
-      service.execute('white', white.match.id, {
-        action: 'ready',
-        choices: { ...selectedWhite, '1:12': 'Q' },
-      }),
+    () => service.execute('white', offer.match.id, {
+      action: 'ready', choices: { ...white, '1:12': 'Q' },
+    }),
     /not allowed/,
   );
-  assert.deepEqual(service.snapshot('white', white.match.id)?.choices, {});
-  const own = service.execute('white', white.match.id, {
-    action: 'ready',
-    choices: selectedWhite,
-  });
-  assert.equal(own?.ready.w, true);
-  assert.equal(own?.phase, 'setup');
-  assert.deepEqual(service.snapshot('black', white.match.id)?.choices, {});
+  assert.deepEqual(service.snapshot('white', offer.match.id)?.choices, {});
+});
+
+void test('each Ready locks only the acting player and starts once both are ready', () => {
+  const service = sessions();
+  const offer = service.create('white', wide);
+  service.join('black', offer.match.id);
+  const white = coinChoices(wide, 'w', 'N');
+  const black = coinChoices(wide, 'b', 'B');
+  const first = service.execute('white', offer.match.id, { action: 'ready', choices: white });
+  assert.ok(first);
+  assert.equal(first.ready.w, true);
+  assert.equal(first.phase, 'setup');
+  assert.deepEqual(service.snapshot('black', offer.match.id)?.choices, {});
   assert.throws(
-    () =>
-      service.execute('white', white.match.id, {
-        action: 'ready',
-        choices: selectedWhite,
-      }),
+    () => service.execute('white', offer.match.id, { action: 'ready', choices: white }),
     /locked/,
   );
-  const done = service.execute('black', white.match.id, {
-    action: 'ready',
-    choices: selectedBlack,
-  });
-  assert.equal(done?.phase, 'playing');
-  assert.equal(done?.state?.board[12]?.[1]?.kind, 'N');
-  assert.equal(done?.state?.board[0]?.[1]?.kind, 'B');
-  assert.equal(done?.template.cells[12]?.[1]?.kind, 'coin');
+  const done = service.execute('black', offer.match.id, { action: 'ready', choices: black });
+  assert.ok(done);
+  assert.equal(done.phase, 'playing');
+  assert.equal(done.state?.board[12]?.[1]?.kind, 'N');
+  assert.equal(done.state?.board[0]?.[1]?.kind, 'B');
+  assert.equal(done.template.cells[12]?.[1]?.kind, 'coin');
 });
 
 void test('free coins permit any piece and reject foreign coordinates', () => {
   const service = sessions();
   const cells = standard.cells.map((row) => [...row]);
-  cells[7]![1] = { kind: 'coin', color: 'w', options: ['P', 'N', 'B', 'R', 'Q', 'K'] };
-  cells[0]![1] = { kind: 'coin', color: 'b', options: ['P', 'N', 'B', 'R', 'Q', 'K'] };
+  cells[7][1] = { kind: 'coin', color: 'w', options: ['P', 'N', 'B', 'R', 'Q', 'K'] };
+  cells[0][1] = { kind: 'coin', color: 'b', options: ['P', 'N', 'B', 'R', 'Q', 'K'] };
   const template = { ...standard, cells };
   const offer = service.create('white', template);
   service.join('black', offer.match.id);
@@ -119,8 +113,9 @@ void test('free coins permit any piece and reject foreign coordinates', () => {
     action: 'ready',
     choices: { '1:0': 'Q' },
   });
-  assert.equal(done?.state?.board[7]?.[1]?.kind, 'R');
-  assert.equal(done?.state?.board[0]?.[1]?.kind, 'Q');
+  assert.ok(done);
+  assert.equal(done.state?.board[7]?.[1]?.kind, 'R');
+  assert.equal(done.state?.board[0]?.[1]?.kind, 'Q');
 });
 
 void test('normal turns remain server-authoritative and replays reset choices', () => {
@@ -162,9 +157,10 @@ void test('normal turns remain server-authoritative and replays reset choices', 
   service.execute('a', coinOffer.match.id, { action: 'resign' });
   service.execute('a', coinOffer.match.id, { action: 'rematch' });
   const reset = service.execute('c', coinOffer.match.id, { action: 'rematch' });
-  assert.equal(reset?.phase, 'setup');
-  assert.deepEqual(reset?.ready, { w: false, b: false });
-  assert.deepEqual(reset?.choices, {});
+  assert.ok(reset);
+  assert.equal(reset.phase, 'setup');
+  assert.deepEqual(reset.ready, { w: false, b: false });
+  assert.deepEqual(reset.choices, {});
 });
 
 void test('random starts are decided server-side with injected randomness', () => {
@@ -229,6 +225,6 @@ void test('server rejects invalid dimensions and coin values', () => {
   const service = sessions();
   assert.throws(() => service.create('a', { ...standard, width: 35 }), /between/);
   const cells = wide.cells.map((row) => [...row]);
-  cells[12]![1] = { kind: 'coin', color: 'w', options: ['N', 'Z' as 'N'] };
+  cells[12][1] = { kind: 'coin', color: 'w', options: ['N', 'Z' as 'N'] };
   assert.throws(() => validateTemplate({ ...wide, cells }), /Invalid board/);
 });
