@@ -1,17 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 
 type Device = 'touch' | 'mac' | 'desktop';
 
 /*** Show only the commands and input methods available on the current device. */
 export function CommandHelp() {
-  const [device, setDevice] = useState<Device | null>(null);
-  useEffect(() => {
-    const touch = window.matchMedia('(pointer: coarse)').matches;
-    const mac = /Macintosh|Mac OS X/.test(navigator.userAgent);
-    setDevice(touch ? 'touch' : mac ? 'mac' : 'desktop');
-  }, []);
+  const device = useSyncExternalStore(subscribe, getDevice, getServerDevice);
   if (!device) return null;
   const modifier = device === 'mac' ? '⌘' : 'Ctrl';
   const shared: readonly [string, string][] = [
@@ -53,4 +48,21 @@ export function CommandHelp() {
       </dl>
     </div>
   );
+}
+
+/*** Device class is fixed for the lifetime of this browser tab. */
+function subscribe(): () => void {
+  return () => undefined;
+}
+
+/*** Read OS modifier and primary input device only after hydration. */
+function getDevice(): Device {
+  const touch = window.matchMedia('(pointer: coarse)').matches;
+  const mac = /Macintosh|Mac OS X/.test(navigator.userAgent);
+  return touch ? 'touch' : mac ? 'mac' : 'desktop';
+}
+
+/*** Avoid leaking client-only device assumptions into server-rendered help. */
+function getServerDevice(): Device | null {
+  return null;
 }
