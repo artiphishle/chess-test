@@ -19,21 +19,25 @@ export function useCommandController(session: MatchSession) {
 
   useSlashShortcut(!commandsOpen && !resigningId, openCommands);
 
-  const submit = useCallback(async (text: string): Promise<Status> => {
-    const command = parseGameCommand(text);
-    if (command.kind === 'help') return 'help';
-    if (command.kind === 'invalid') return 'keep';
-    const { match } = session;
-    if (match?.phase !== 'playing') return 'keep';
-    if (command.kind === 'resign') {
-      requestResign(match.id);
-      return 'close';
-    }
-    const payload = command.kind === 'draw'
-      ? { action: 'draw', matchId: match.id }
-      : { action: 'cheat', notation: command.notation, matchId: match.id };
-    return await session.act(payload) ? 'close' : 'keep';
-  }, [requestResign, session]);
+  const submit = useCallback(
+    async (text: string): Promise<Status> => {
+      const command = parseGameCommand(text);
+      if (command.kind === 'help') return 'help';
+      if (command.kind === 'invalid') return 'keep';
+      const { match } = session;
+      if (match?.phase !== 'playing') return 'keep';
+      if (command.kind === 'resign') {
+        requestResign(match.id);
+        return 'close';
+      }
+      const payload =
+        command.kind === 'draw'
+          ? { action: 'draw', matchId: match.id }
+          : { action: 'cheat', notation: command.notation, matchId: match.id };
+      return (await session.act(payload)) ? 'close' : 'keep';
+    },
+    [requestResign, session],
+  );
 
   const confirmResign = useCallback(() => {
     if (!resigningId || session.busy) return;
