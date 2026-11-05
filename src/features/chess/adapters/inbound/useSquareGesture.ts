@@ -47,17 +47,26 @@ export function useSquareGesture(
     onContextMenu: (event: MouseEvent<HTMLButtonElement>) => {
       if (onSquareLong) event.preventDefault();
     },
-    onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => {
-      if (event.shiftKey && event.key === 'Enter' && onSquareLong) {
-        event.preventDefault();
-        consumed.current = true;
-        onSquareLong(position);
-      }
-    },
+    onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) =>
+      handleLongPressKey(event, position, onSquareLong, consumed),
     onClick: (event: MouseEvent<HTMLButtonElement>) => {
       if (event.currentTarget.closest('.editor-interactive.multi-touch')) return;
       if (!consumed.current) onSquare(position);
       consumed.current = false;
     },
   };
+}
+
+/*** Allow an accessible long-press alternative without a pointer. */
+function handleLongPressKey(
+  event: KeyboardEvent<HTMLButtonElement>,
+  position: Position,
+  onSquareLong: ((position: Position) => void) | undefined,
+  consumed: { current: boolean },
+): void {
+  if (event.shiftKey && event.key === 'Enter' && onSquareLong) {
+    event.preventDefault();
+    consumed.current = true;
+    onSquareLong(position);
+  }
 }
