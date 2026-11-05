@@ -2,14 +2,16 @@
 
 import { Button } from '@ankhorage/zora/web/button';
 
+import type { BoardInteraction } from '../../../chess/adapters/inbound/useBoardInteraction.ts';
 import type { MatchSession } from './useMatchSession.ts';
 
 interface Props {
   readonly session: MatchSession;
+  readonly interaction: BoardInteraction;
 }
 
-/*** Show automatic choice-coin progress without requiring an additional ready command. */
-export function SetupSidebar({ session }: Props) {
+/*** Let each player cycle private coin choices, then lock them explicitly before play. */
+export function SetupSidebar({ session, interaction }: Props) {
   const { match } = session;
   if (!match) return null;
   const ownReady = match.ready[match.color];
@@ -19,13 +21,13 @@ export function SetupSidebar({ session }: Props) {
       cell?.kind === 'coin' && cell.color === match.color ? [`${x}:${y}`] : [],
     ),
   );
-  const resolved = coins.filter((key) => Object.hasOwn(match.choices, key)).length;
+  const resolved = coins.filter((key) => Object.hasOwn(interaction.choices, key)).length;
   return (
     <>
       <h2>Deine Choice Coins</h2>
       <p className="muted">
-        Tippe auf einen Deiner offenen Coins auf dem Brett. Wähle die Figur im Dialog. Bereits
-        eingesetzte Figuren bleiben für diese Partie fixiert.
+        Tippe mehrfach auf Deine Coins: Springer → Läufer → Springer. Erst «Bereit» fixiert alle
+        Figuren. Die gegnerische Auswahl bleibt bis zum Spielstart verborgen.
       </p>
       <div className="ready-status">
         <strong>
@@ -34,11 +36,12 @@ export function SetupSidebar({ session }: Props) {
         <div>Du: {ownReady ? 'Bereit ✓' : 'Wählst Figuren'}</div>
         <div>Gegner: {opponentReady ? 'Bereit ✓' : 'Wählt Figuren'}</div>
       </div>
-      <p className="muted">
-        {ownReady
-          ? 'Deine Auswahl ist abgeschlossen. Die Partie startet automatisch, sobald Dein Gegner fertig ist.'
-          : 'Sobald alle Deine Coins ersetzt sind, bist Du automatisch bereit.'}
-      </p>
+      <Button
+        disabled={session.busy || ownReady || resolved !== coins.length}
+        onPress={interaction.confirmChoices}
+      >
+        {ownReady ? 'Auswahl bestätigt ✓' : 'Bereit – Auswahl bestätigen'}
+      </Button>
       <Button
         variant="ghost"
         disabled={session.busy}

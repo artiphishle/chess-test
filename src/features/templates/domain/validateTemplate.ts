@@ -28,7 +28,7 @@ export function validateTemplate(value: unknown): Template {
     name.length > 100
   )
     throw new Error('Invalid template identity');
-  if (!colors.includes(String(turn))) throw new Error('Invalid side to move');
+  if (![...colors, 'random'].includes(String(turn))) throw new Error('Invalid side to move');
   if (
     !Array.isArray(cells) ||
     cells.length !== height ||

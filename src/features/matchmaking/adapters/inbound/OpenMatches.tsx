@@ -34,7 +34,7 @@ export function OpenMatches({ matches, mine, busy, onJoin, onCancel }: Props) {
                     {owned ? ' · Deine Partie' : ''}
                   </strong>
                   <small>
-                    {match.width} × {match.height} · {match.coins} Choice Coins
+                    {match.hostName} · {match.width} × {match.height} · {match.coins} Choice Coins
                   </small>
                 </div>
                 <Button

@@ -26,3 +26,9 @@ void test('board-size dropdowns and validation share inclusive limits from const
   assert.equal(valid.width, max);
   assert.equal(valid.height, max);
 });
+
+void test('random turn is valid but unrecognized starting sides are rejected', () => {
+  const [standard] = createPresets();
+  assert.equal(validateTemplate({ ...standard, turn: 'random' }).turn, 'random');
+  assert.throws(() => validateTemplate({ ...standard, turn: 'neither' }), /Invalid side/);
+});

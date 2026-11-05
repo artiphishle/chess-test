@@ -12,44 +12,45 @@ interface ActionState {
   readonly setSelected: Dispatch<SetStateAction<Position | null>>;
   readonly promotion: { from: Position; to: Position } | null;
   readonly setPromotion: Dispatch<SetStateAction<{ from: Position; to: Position } | null>>;
-  readonly activeCoin: Position | null;
-  readonly setActiveCoin: Dispatch<SetStateAction<Position | null>>;
+  readonly draft: Readonly<Record<string, PieceKind>>;
+  readonly setDraft: Dispatch<SetStateAction<Readonly<Record<string, PieceKind>>>>;
   readonly legal: readonly Move[];
 }
 
-/*** Build board interactions without mixing state presentation with commands. */
+/*** Bind local selection gestures and commit all owned coins together only on Ready. */
 export function createBoardActions(
   context: ActionState,
-): Pick<BoardInteraction, 'onSquare' | 'choose' | 'promote'> {
+): Pick<BoardInteraction, 'onSquare' | 'confirmChoices' | 'promote'> {
   return {
     onSquare: (position) => handleSquare(context, position),
-    choose: (kind) => resolveCoin(context, kind),
+    confirmChoices: () => {
+      void context.session.act({ action: 'ready', choices: context.draft });
+    },
     promote: (kind) => confirmPromotion(context, kind),
   };
 }
 
-/*** Distinguish pre-game coin setup from ordinary turn-bound play. */
+/*** Cycle setup coins without network latency, or choose a legal move during play. */
 function handleSquare(context: ActionState, position: Position): void {
   const { match, busy } = context.session;
-  if (!match) return;
+  if (!match || busy) return;
   if (match.phase === 'setup') {
     const coin = match.template.cells.at(position.y)?.at(position.x);
-    if (
-      !busy &&
-      coin?.kind === 'coin' &&
-      coin.color === match.color &&
-      !match.ready[match.color] &&
-      !Object.hasOwn(match.choices, `${position.x}:${position.y}`)
-    ) {
-      context.setActiveCoin(position);
-    }
+    if (coin?.kind !== 'coin' || coin.color !== match.color || match.ready[match.color]) return;
+    const key = `${position.x}:${position.y}`;
+    context.setDraft((current) => {
+      const currentPiece = Object.entries(current).find(([id]) => id === key)?.[1];
+      const index = currentPiece === undefined ? -1 : coin.options.indexOf(currentPiece);
+      const next = coin.options.at((index + 1) % coin.options.length);
+      return next === undefined ? current : { ...current, [key]: next };
+    });
     return;
   }
-  if (match.phase !== 'playing' || match.state?.turn !== match.color || busy) return;
+  if (match.phase !== 'playing' || match.state?.turn !== match.color) return;
   handlePlayingSquare(context, position);
 }
 
-/*** Select one friendly piece or apply a legal destination. */
+/*** Select one friendly piece or play an authorized destination. */
 function handlePlayingSquare(context: ActionState, position: Position): void {
   const { selected, legal, session, setSelected, setPromotion } = context;
   const { match } = session;
@@ -75,16 +76,7 @@ function handlePlayingSquare(context: ActionState, position: Position): void {
   });
 }
 
-/*** Save one independently selected piece on an unresolved coin. */
-function resolveCoin(context: ActionState, kind: PieceKind): void {
-  const { activeCoin, session, setActiveCoin } = context;
-  if (!activeCoin) return;
-  void session.act({ action: 'choose', x: activeCoin.x, y: activeCoin.y, kind }).then((ok) => {
-    if (ok) setActiveCoin(null);
-  });
-}
-
-/*** Post a legal pawn-promotion move after the player chooses its piece. */
+/*** Confirm a pawn promotion using the existing server-authorized move boundary. */
 function confirmPromotion(context: ActionState, kind: Move['promotion']): void {
   const { promotion, session, setPromotion, setSelected } = context;
   if (!promotion) return;

@@ -2,15 +2,17 @@
 
 import { PieceSetSelect } from '../../../chess/adapters/inbound/PieceSetSelect.tsx';
 import type { MatchSnapshot } from '../../application/createGameService.ts';
+import { PlayerNameEditor } from './PlayerNameEditor.tsx';
 
 interface Props {
   readonly match: MatchSnapshot | null;
   readonly error: string;
   readonly clearError: () => void;
+  readonly onName: (name: string) => void;
 }
 
 /*** Show the brand and authoritative matchmaking phase. */
-export function AppHeader({ match, error, clearError }: Props) {
+export function AppHeader({ match, error, clearError, onName }: Props) {
   const status =
     match?.phase === 'waiting'
       ? 'Spielersuche'
@@ -34,6 +36,7 @@ export function AppHeader({ match, error, clearError }: Props) {
           </div>
         </div>
         <div className="header-controls">
+          <PlayerNameEditor onName={onName} />
           <PieceSetSelect />
           <div className="header-status">
             <span className="status-light" />

@@ -3,12 +3,14 @@ import { createGameState } from '../../chess/domain/createGameState.ts';
 import { playMove } from '../../chess/domain/playMove.ts';
 import { readOutcome } from '../../chess/domain/readOutcome.ts';
 import { validateTemplate } from '../../templates/domain/validateTemplate.ts';
+import { validateCoinChoices } from './validateCoinChoices.ts';
+import { validatePlayerName } from './validatePlayerName.ts';
 
 type Phase = 'waiting' | 'setup' | 'playing' | 'finished';
 type Command =
   | { action: 'create'; template: unknown }
   | { action: 'join'; matchId: string }
-  | { action: 'choose'; x: number; y: number; kind: PieceKind }
+  | { action: 'ready'; choices: unknown }
   | { action: 'move'; move: Move }
   | { action: 'resign' }
   | { action: 'rematch' }
@@ -26,6 +28,8 @@ interface Match {
   state: GameState | null;
   result: FinishReason | null;
   createdAt: number;
+  lastHostSeenAt: number;
+  players: { w: string; b: string | null };
 }
 export interface LobbyMatch {
   readonly id: string;
@@ -34,6 +38,7 @@ export interface LobbyMatch {
   readonly height: number;
   readonly coins: number;
   readonly createdAt: number;
+  readonly hostName: string;
 }
 
 export interface MatchSnapshot {
@@ -45,13 +50,18 @@ export interface MatchSnapshot {
   readonly ready: Readonly<Record<Color, boolean>>;
   readonly rematch: Readonly<Record<Color, boolean>>;
   readonly opponentPresent: boolean;
+  readonly players: Readonly<{ w: string; b: string | null }>;
   readonly state: GameState | null;
   readonly result: FinishReason | null;
 }
 
 /*** Create the single-process authoritative matchmaking and game service. */
-export function createGameService(ids: () => string, clock: () => number = Date.now) {
-  return new InProcessGameService(ids, clock);
+export function createGameService(
+  ids: () => string,
+  clock: () => number = Date.now,
+  random: () => number = Math.random,
+) {
+  return new InProcessGameService(ids, clock, random);
 }
 
 /*** Isolate mutable session mappings at the application boundary. */
@@ -60,9 +70,11 @@ class InProcessGameService {
   private readonly sessions = new Map<string, Set<string>>();
   private readonly ids: () => string;
   private readonly clock: () => number;
-  constructor(ids: () => string, clock: () => number) {
+  private readonly random: () => number;
+  constructor(ids: () => string, clock: () => number, random: () => number) {
     this.ids = ids;
     this.clock = clock;
+    this.random = random;
   }
 
   /*** Link one anonymous participant to a specific game without replacing other seats. */
@@ -94,7 +106,10 @@ class InProcessGameService {
     this.expireWaiting();
     return [...(this.sessions.get(token) ?? [])].flatMap((matchId) => {
       const match = this.snapshot(token, matchId);
-      return match ? [match] : [];
+      if (!match) return [];
+      const owned = this.matches.get(matchId);
+      if (owned?.phase === 'waiting' && owned.white === token) owned.lastHostSeenAt = this.clock();
+      return [match];
     });
   }
 
@@ -112,6 +127,7 @@ class InProcessGameService {
       ready: { ...match.ready },
       rematch: { ...match.rematch },
       opponentPresent: Boolean(color === 'w' ? match.black : match.white),
+      players: { ...match.players },
       state: match.state,
       result: match.result,
     };
@@ -120,7 +136,7 @@ class InProcessGameService {
   /*** Drop expired waiting offers and release their session identities. */
   private expireWaiting(): void {
     for (const [id, match] of this.matches) {
-      if (match.phase !== 'waiting' || this.clock() - match.createdAt < 900_000) continue;
+      if (match.phase !== 'waiting' || this.clock() - match.lastHostSeenAt < 90_000) continue;
       this.matches.delete(id);
       this.removeSession(match.white, id);
     }
@@ -139,6 +155,7 @@ class InProcessGameService {
         height: match.template.height,
         coins: match.template.cells.flat().filter((cell) => cell?.kind === 'coin').length,
         createdAt: match.createdAt,
+        hostName: match.players.w,
       }));
   }
 
@@ -146,8 +163,10 @@ class InProcessGameService {
   create(
     previousToken: string | undefined,
     proposedTemplate: unknown,
+    name?: unknown,
   ): { token: string; match: MatchSnapshot } {
     const template = validateTemplate(proposedTemplate);
+    const displayName = validatePlayerName(name, 'Spieler Weiss');
     const token = previousToken ?? this.ids();
     const match: Match = {
       id: this.ids(),
@@ -161,6 +180,8 @@ class InProcessGameService {
       state: null,
       result: null,
       createdAt: this.clock(),
+      lastHostSeenAt: this.clock(),
+      players: { w: displayName, b: null },
     };
     this.matches.set(match.id, match);
     this.addSession(token, match.id);
@@ -173,8 +194,10 @@ class InProcessGameService {
   join(
     previousToken: string | undefined,
     matchId: string,
+    name?: unknown,
   ): { token: string; match: MatchSnapshot } {
     this.expireWaiting();
+    const displayName = validatePlayerName(name, 'Spieler Schwarz');
     const waiting = this.matches.get(matchId);
     if (previousToken && waiting?.white === previousToken)
       throw new Error('Eigene Partie kann nicht beigetreten werden');
@@ -186,6 +209,7 @@ class InProcessGameService {
       throw new Error('Partie nicht mehr verfügbar');
     const token = previousToken ?? this.ids();
     waiting.black = token;
+    waiting.players.b = displayName;
     this.addSession(token, waiting.id);
     this.setup(waiting);
     const snapshot = this.snapshot(token, waiting.id);
@@ -203,8 +227,8 @@ class InProcessGameService {
     if (!active) throw new Error('No active session');
     const { match, color } = active;
     switch (command.action) {
-      case 'choose':
-        this.choose(match, color, command);
+      case 'ready':
+        this.confirmChoices(match, color, command.choices);
         break;
       case 'move':
         this.move(match, color, command.move);
@@ -224,36 +248,31 @@ class InProcessGameService {
     return this.snapshot(token, matchId);
   }
 
-  /*** Reject invalid coins and freeze every individual choice when ready. */
-  private choose(
-    match: Match,
-    color: Color,
-    choice: { x: number; y: number; kind: PieceKind },
-  ): void {
-    if (match.phase !== 'setup' || isReady(match.ready, color))
+  /*** Atomically validate and freeze the entire owned coin selection at Ready. */
+  private confirmChoices(match: Match, color: Color, value: unknown): void {
+    if (match.phase !== 'setup' || (color === 'w' ? match.ready.w : match.ready.b))
       throw new Error('Choices are locked');
-    const { x, y, kind } = choice;
-    if (!Number.isInteger(x) || !Number.isInteger(y)) throw new Error('Invalid coin position');
-    const cell = match.template.cells.at(y)?.at(x);
-    if (cell?.kind !== 'coin' || cell.color !== color || !cell.options.includes(kind))
-      throw new Error('Choice not allowed');
-    const choices = color === 'w' ? match.choices.w : match.choices.b;
-    const key = `${x}:${y}`;
-    if (Object.hasOwn(choices, key)) throw new Error('Coin already resolved');
-    Object.assign(choices, { [key]: kind });
-    this.finishSetupIfResolved(match, color, choices);
+    const selected = validateCoinChoices(match.template, color, value);
+    if (color === 'w') {
+      match.choices.w = selected;
+      match.ready.w = true;
+    } else {
+      match.choices.b = selected;
+      match.ready.b = true;
+    }
+    if (match.ready.w && match.ready.b) this.start(match);
   }
 
-  /*** Mark one side ready and start automatically when all its coins are resolved. */
-  private finishSetupIfResolved(
-    match: Match,
-    color: Color,
-    choices: Readonly<Record<string, PieceKind>>,
-  ): void {
-    if (!areAllCoinsResolved(match.template, color, choices)) return;
-    if (color === 'w') match.ready.w = true;
-    else match.ready.b = true;
-    if (match.ready.w && match.ready.b) this.start(match);
+  /*** Rename only games currently owned by the authorized tab. */
+  rename(token: string, proposedName: unknown): void {
+    const joined = this.sessions.get(token);
+    if (!joined) throw new Error('No active session');
+    const name = validatePlayerName(proposedName, 'Gast');
+    for (const id of joined) {
+      const match = this.matches.get(id);
+      if (match?.white === token) match.players.w = name;
+      if (match?.black === token) match.players.b = name;
+    }
   }
 
   /*** Validate every requested move with the headless engine on the server. */
@@ -268,7 +287,7 @@ class InProcessGameService {
   private resign(match: Match, color: Color): void {
     if (match.phase !== 'playing' && match.phase !== 'setup')
       throw new Error('Not an active match');
-    match.result = { winner: opposite(color), reason: 'resignation' };
+    match.result = { winner: color === 'w' ? 'b' : 'w', reason: 'resignation' };
     match.phase = 'finished';
   }
 
@@ -284,7 +303,7 @@ class InProcessGameService {
   /*** Unbind a departing player and award the opponent a result when applicable. */
   private leave(match: Match, color: Color, token: string): void {
     if (match.phase === 'playing' || match.phase === 'setup') {
-      match.result = { winner: opposite(color), reason: 'departure' };
+      match.result = { winner: color === 'w' ? 'b' : 'w', reason: 'departure' };
       match.phase = 'finished';
     }
     if (match.phase === 'waiting') this.matches.delete(match.id);
@@ -313,32 +332,9 @@ class InProcessGameService {
 
   /*** Enter play, or finish immediately for an already terminal custom position. */
   private start(match: Match): void {
-    match.state = createGameState(match.template, match.choices);
+    const randomTurn: Color = this.random() < 0.5 ? 'w' : 'b';
+    match.state = createGameState(match.template, match.choices, randomTurn);
     match.result = readOutcome(match.state);
     match.phase = match.result ? 'finished' : 'playing';
   }
-}
-
-/*** Swap chess colors without exposing authorization or transport concerns. */
-function opposite(color: Color): Color {
-  return color === 'w' ? 'b' : 'w';
-}
-
-/*** Read the current player's ready flag without computed-property access. */
-function isReady(ready: Readonly<Record<Color, boolean>>, color: Color): boolean {
-  return color === 'w' ? ready.w : ready.b;
-}
-
-/*** Detect completion of only the acting player's unresolved choice coins. */
-function areAllCoinsResolved(
-  template: Template,
-  color: Color,
-  choices: Readonly<Record<string, PieceKind>>,
-): boolean {
-  return template.cells.every((row, y) =>
-    row.every(
-      (cell, x) =>
-        cell?.kind !== 'coin' || cell.color !== color || Object.hasOwn(choices, `${x}:${y}`),
-    ),
-  );
 }

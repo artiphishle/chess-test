@@ -2,6 +2,7 @@
 
 import type { Cell, Position } from '../../../../types/chess.ts';
 import { ChessPiece } from './ChessPiece.tsx';
+import { useSquareGesture } from './useSquareGesture.ts';
 
 interface Props {
   readonly cells: readonly (readonly Cell[])[];
@@ -13,6 +14,7 @@ interface Props {
   readonly checkedKings?: readonly Position[];
   readonly disabled?: boolean;
   readonly onSquare: (position: Position) => void;
+  readonly onSquareLong?: (position: Position) => void;
 }
 
 /*** Render accessible rectangular chess grids with optional black orientation. */
@@ -26,6 +28,7 @@ export function ChessBoard({
   checkedKings = [],
   disabled = false,
   onSquare,
+  onSquareLong,
 }: Props) {
   const rows = Array.from({ length: height }, (_, index) => (flipped ? height - 1 - index : index));
   const cols = Array.from({ length: width }, (_, index) => (flipped ? width - 1 - index : index));
@@ -52,6 +55,7 @@ export function ChessBoard({
               checked={checkedKings.some((target) => target.x === x && target.y === y)}
               disabled={disabled}
               onSquare={onSquare}
+              onSquareLong={onSquareLong}
             />
           )),
         )}
@@ -68,12 +72,31 @@ interface SquareProps {
   readonly checked: boolean;
   readonly disabled: boolean;
   readonly onSquare: (position: Position) => void;
+  readonly onSquareLong?: (position: Position) => void;
 }
 
-/*** Render an individual square without mixing piece presentation and gameplay state. */
-function Square({ cell, position, selected, hinted, checked, disabled, onSquare }: SquareProps) {
+/*** Render one square and delegate gesture timing to the interaction hook. */
+function Square({
+  cell,
+  position,
+  selected,
+  hinted,
+  checked,
+  disabled,
+  onSquare,
+  onSquareLong,
+}: SquareProps) {
   const active = selected?.x === position.x && selected.y === position.y;
   const presentation = getSquarePresentation({ cell, position, active, hinted, checked });
+  const gesture = useSquareGesture(position, onSquare, onSquareLong);
+  const coinLabel =
+    cell?.kind === 'coin'
+      ? cell.options.length <= 2
+        ? cell.options.join('')
+        : cell.options.length === 6
+          ? 'F'
+          : 'C'
+      : null;
   return (
     <button
       type="button"
@@ -81,11 +104,11 @@ function Square({ cell, position, selected, hinted, checked, disabled, onSquare 
       aria-pressed={active}
       className={presentation.className}
       disabled={disabled}
-      onClick={() => onSquare(position)}
+      {...gesture}
     >
       {cell?.kind === 'coin' ? (
         <span className="coin" title={cell.options.join('/')}>
-          C
+          {coinLabel}
         </span>
       ) : cell ? (
         <ChessPiece piece={cell} />

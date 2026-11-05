@@ -68,6 +68,10 @@ function writeGame(request: ApiRequest): ApiHandlerResponse {
     if (request.body.action === 'create' || request.body.action === 'join')
       return createOrJoinGame(service, browserId, tabId, request.body);
     if (!browserId) return { status: 401, headers, body: { error: 'No session' } };
+    if (request.body.action === 'rename') {
+      service.rename(`${browserId}:${tabId}`, request.body.name);
+      return { headers, body: { match: null } };
+    }
     if (typeof request.body.matchId !== 'string' || !request.body.matchId) {
       return { status: 400, headers, body: { error: 'Missing match ID' } };
     }
@@ -97,8 +101,8 @@ function createOrJoinGame(
   const identity = `${verifiedBrowserId}:${tabId}`;
   const joined =
     body.action === 'create'
-      ? service.create(identity, body.template)
-      : service.join(identity, typeof body.matchId === 'string' ? body.matchId : '');
+      ? service.create(identity, body.template, body.name)
+      : service.join(identity, typeof body.matchId === 'string' ? body.matchId : '', body.name);
   return {
     headers: browserId
       ? headers

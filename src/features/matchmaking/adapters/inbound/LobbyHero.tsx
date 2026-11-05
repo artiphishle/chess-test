@@ -2,53 +2,25 @@
 
 import { Button } from '@ankhorage/zora/web/button';
 
-import type { TemplateLibrary } from '../../../templates/adapters/inbound/useTemplateLibrary.ts';
-
 interface Props {
-  readonly library: TemplateLibrary;
   readonly busy: boolean;
   readonly onPlay: () => void;
 }
 
-/*** Explain the anonymous chess experiment and expose the Play action. */
-export function LobbyHero({ library, busy, onPlay }: Props) {
-  const coins = library.template.cells.flat().filter((cell) => cell?.kind === 'coin').length;
+/*** Launch an immutable configured game while leaving the editor in the lobby. */
+export function LobbyHero({ busy, onPlay }: Props) {
   return (
-    <section className="hero">
-      <div className="hero-copy">
-        <div className="eyebrow">ANKHORAGE LAB / CHESS</div>
+    <section className="compact-hero">
+      <div>
+        <span className="eyebrow">ANKHORAGE LAB / CHESS</span>
         <h1>
           Schach. <em>Ohne Grenzen.</em>
         </h1>
-        <p>
-          Konfiguriere Dein Brett und eröffne eine Partie in der öffentlichen Lobby. Andere Spieler
-          können Dein Angebot gezielt annehmen – ohne Anmeldung.
-        </p>
-        <div className="hero-actions">
-          <Button onPress={onPlay} disabled={busy}>
-            ♟ Partie erstellen
-          </Button>
-          <Button variant="outline" onPress={() => library.setEditing((value) => !value)}>
-            {library.editing ? 'Vorschau' : 'Konfigurieren'}
-          </Button>
-        </div>
+        <p className="muted">Brett gestalten, Partie anbieten, gemeinsam spielen.</p>
       </div>
-      <div className="hero-stats">
-        <div>
-          <b>
-            {library.template.width} × {library.template.height}
-          </b>
-          <span>Brettformat</span>
-        </div>
-        <div>
-          <b>{coins}</b>
-          <span>Choice Coins</span>
-        </div>
-        <div>
-          <b>2</b>
-          <span>Spieler</span>
-        </div>
-      </div>
+      <Button onPress={onPlay} disabled={busy}>
+        ♟ Partie erstellen
+      </Button>
     </section>
   );
 }

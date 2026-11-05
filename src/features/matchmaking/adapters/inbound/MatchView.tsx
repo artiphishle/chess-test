@@ -36,13 +36,16 @@ export function MatchView({ session, interaction }: Props) {
           width={match.template.width}
           height={match.template.height}
           flipped={match.color === 'b'}
-          selected={match.phase === 'setup' ? interaction.activeCoin : interaction.selected}
+          selected={interaction.selected}
           hints={interaction.legal.map((move) => move.to)}
           checkedKings={checkedKings}
           onSquare={interaction.onSquare}
         />
         <div className="board-footer">
-          <span>Du spielst {match.color === 'w' ? 'Weiss ♔' : 'Schwarz ♚'}</span>
+          <span>
+            {match.players[match.color] ?? 'Gast'} · Du spielst{' '}
+            {match.color === 'w' ? 'Weiss ♔' : 'Schwarz ♚'}
+          </span>
           <span>
             {match.phase === 'playing'
               ? `${match.state?.turn === 'w' ? 'Weiss' : 'Schwarz'} am Zug`
@@ -50,7 +53,7 @@ export function MatchView({ session, interaction }: Props) {
           </span>
         </div>
       </div>
-      <MatchSidebar session={session} />
+      <MatchSidebar session={session} interaction={interaction} />
     </section>
   );
 }
