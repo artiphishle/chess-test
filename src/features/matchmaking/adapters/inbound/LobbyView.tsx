@@ -19,17 +19,21 @@ interface Props {
 /*** Keep the editable board visible above the public multi-match lobby. */
 export function LobbyView({ library, busy, onPlay, lobby, mine, onJoin, onCancel }: Props) {
   return (
-    <>
-      <LobbyHero busy={busy} onPlay={onPlay} />
-      <TemplateEditor
-        template={library.template}
-        templates={library.templates}
-        onSelect={library.setTemplate}
-        onUpdate={library.setTemplate}
-        onSave={library.save}
-        onDelete={library.remove}
-      />
-      <OpenMatches matches={lobby} mine={mine} busy={busy} onJoin={onJoin} onCancel={onCancel} />
-    </>
+    <div className="lobby-layout">
+      <div className="lobby-board-column">
+        <TemplateEditor
+          template={library.template}
+          templates={library.templates}
+          onSelect={library.setTemplate}
+          onUpdate={library.setTemplate}
+          onSave={library.save}
+          onDelete={library.remove}
+        />
+      </div>
+      <aside className="lobby-rail" aria-label="Lobby">
+        <LobbyHero busy={busy} onPlay={onPlay} />
+        <OpenMatches matches={lobby} mine={mine} busy={busy} onJoin={onJoin} onCancel={onCancel} />
+      </aside>
+    </div>
   );
 }

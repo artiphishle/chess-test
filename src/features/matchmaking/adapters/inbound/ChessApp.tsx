@@ -1,7 +1,9 @@
 'use client';
 
 import { ZoraProvider } from '@ankhorage/zora/web/runtime';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
+
+import { useBoardTheme } from '../../../branding/adapters/inbound/useBoardTheme.ts';
 
 import { PieceSetProvider } from '../../../chess/adapters/inbound/PieceSetProvider.tsx';
 import { useBoardInteraction } from '../../../chess/adapters/inbound/useBoardInteraction.ts';
@@ -19,16 +21,31 @@ import { useMatchSession } from './useMatchSession.ts';
 
 /*** Compose the Ankhorage chess application from independent domain-facing UI features. */
 export function ChessApp() {
+  const { theme: boardTheme } = useBoardTheme();
   const session = useMatchSession();
+  useEffect(() => {
+    const icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (icon) {
+      icon.href = boardTheme.icon;
+      return;
+    }
+    const next = document.createElement('link');
+    next.rel = 'icon';
+    next.href = boardTheme.icon;
+    document.head.appendChild(next);
+  }, [boardTheme.icon]);
   const library = useTemplateLibrary();
   const commands = useCommandController(session);
   const rename = useCallback((name: string) => {
     void sendGameCommandAsync({ action: 'rename', name }).catch(() => undefined);
   }, []);
   return (
-    <ZoraProvider theme={theme} initialMode="dark">
+    <ZoraProvider
+      theme={{ ...theme, primaryColor: boardTheme.accent }}
+      initialMode="dark"
+    >
       <PieceSetProvider>
-        <main className="app-shell">
+        <main className="app-shell" data-brand-theme={boardTheme.id}>
           <AppHeader
             match={session.match}
             error={session.error}
@@ -89,18 +106,23 @@ function ActiveMatchContent({
 }
 
 const theme = {
-  id: 'chess-test',
-  name: 'Chess Test',
+  id: 'grossmeister',
+  name: 'GrossMeister',
   appCategory: 'developer_tools',
-  primaryColor: '#b5e0ac',
+  primaryColor: '#ce1344',
   harmony: 'analogous',
 } as const;
 
 /*** Keep the application footer independent from interaction wiring. */
 function AppFooter() {
+  const { theme: boardTheme } = useBoardTheme();
   return (
-    <footer>
-      ANKHORAGE · CHESS TEST <span>Variable boards. Real chess rules.</span>
+    <footer className="brand-footer">
+      <div className="footer-brand">
+        <img src={boardTheme.icon} width={42} height={42} alt="" aria-hidden="true" />
+        <span>© GrossMeister</span>
+      </div>
+      <span>Schach neu gedacht · grossmeister.ch (in Vorbereitung)</span>
     </footer>
   );
 }

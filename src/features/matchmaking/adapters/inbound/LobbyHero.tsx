@@ -10,14 +10,10 @@ interface Props {
 /*** Launch an immutable configured game while leaving the editor in the lobby. */
 export function LobbyHero({ busy, onPlay }: Props) {
   return (
-    <section className="compact-hero">
-      <div>
-        <span className="eyebrow">ANKHORAGE LAB / CHESS</span>
-        <h1>
-          Schach. <em>Ohne Grenzen.</em>
-        </h1>
-        <p className="muted">Brett gestalten, Partie anbieten, gemeinsam spielen.</p>
-      </div>
+    <section className="panel lobby-create-panel">
+      <span className="eyebrow">GROSSMEISTER · LOBBY</span>
+      <h1>Dein nächstes Spiel.</h1>
+      <p className="muted">Brett gestalten und eine Partie für andere Spieler eröffnen.</p>
       <Button onPress={onPlay} disabled={busy}>
         ♟ Partie erstellen
       </Button>

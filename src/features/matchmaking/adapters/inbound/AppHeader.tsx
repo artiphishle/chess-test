@@ -1,5 +1,6 @@
 'use client';
 
+import { useBoardTheme } from '../../../branding/adapters/inbound/useBoardTheme.ts';
 import { PieceSetSelect } from '../../../chess/adapters/inbound/PieceSetSelect.tsx';
 import type { MatchSnapshot } from '../../application/createGameService.ts';
 import { PlayerNameEditor } from './PlayerNameEditor.tsx';
@@ -15,18 +16,14 @@ interface Props {
 /*** Show the brand and authoritative matchmaking phase. */
 export function AppHeader({ match, error, clearError, onName, onCommands }: Props) {
   const status = readHeaderStatus(match);
+  const { theme: boardTheme } = useBoardTheme();
   return (
     <>
       <header className="app-header">
-        <div className="brand">
-          <div className="brand-icon">♞</div>
-          <div>
-            <strong>
-              CHESS<span>TEST</span>
-            </strong>
-            <p>Experimentelle Spielkonfigurationen</p>
-          </div>
-        </div>
+        <a className="brand" href="/" aria-label="GrossMeister Startseite">
+          <span className="brand-wordmark" role="img" aria-label="GM GrossMeister" />
+          <span className="brand-theme-name">{boardTheme.name}</span>
+        </a>
         <div className="header-controls">
           <PlayerNameEditor onName={onName} />
           <button
