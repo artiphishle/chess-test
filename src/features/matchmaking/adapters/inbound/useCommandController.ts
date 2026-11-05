@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { parseGameCommand } from '../../application/parseGameCommand.ts';
 import type { MatchSession } from './useMatchSession.ts';
+import { useSlashShortcut } from './useSlashShortcut.ts';
 
 type Status = 'close' | 'help' | 'keep';
 
@@ -16,26 +17,14 @@ export function useCommandController(session: MatchSession) {
   const cancelResign = useCallback(() => setResigningId(null), []);
   const requestResign = useCallback((id: string) => setResigningId(id), []);
 
-  useEffect(() => {
-    const keydown = (event: KeyboardEvent): void => {
-      if (commandsOpen || resigningId || event.key !== '/' ||
-        event.altKey || event.ctrlKey || event.metaKey) return;
-      const target = event.target;
-      if (target instanceof HTMLElement &&
-        (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))) return;
-      event.preventDefault();
-      openCommands();
-    };
-    window.addEventListener('keydown', keydown);
-    return () => window.removeEventListener('keydown', keydown);
-  }, [commandsOpen, resigningId, openCommands]);
+  useSlashShortcut(!commandsOpen && !resigningId, openCommands);
 
   const submit = useCallback(async (text: string): Promise<Status> => {
     const command = parseGameCommand(text);
     if (command.kind === 'help') return 'help';
     if (command.kind === 'invalid') return 'keep';
-    const match = session.match;
-    if (!match || match.phase !== 'playing') return 'keep';
+    const { match } = session;
+    if (match?.phase !== 'playing') return 'keep';
     if (command.kind === 'resign') {
       requestResign(match.id);
       return 'close';
