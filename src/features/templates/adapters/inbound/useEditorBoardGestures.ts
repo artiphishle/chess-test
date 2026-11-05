@@ -38,6 +38,7 @@ export function useEditorBoardGestures(actions: GestureActions) {
 
   return {
     onPointerDown: (event: PointerEvent<HTMLDivElement>): void => {
+      if (pointers.current.size === 0) suppressed.current = false;
       pointers.current.set(event.pointerId, {
         start: { x: event.clientX, y: event.clientY },
         point: { x: event.clientX, y: event.clientY },
@@ -45,6 +46,7 @@ export function useEditorBoardGestures(actions: GestureActions) {
       });
       if (pointers.current.size === 2 && event.pointerType === 'touch') {
         twoFinger.current = true;
+        suppressed.current = true;
         previousDual.current = readDual([...pointers.current.values()]);
         event.currentTarget.classList.add('multi-touch');
       }
@@ -143,13 +145,13 @@ export function useEditorBoardGestures(actions: GestureActions) {
     onPointerCancel: (event: PointerEvent<HTMLDivElement>): void => {
       pointers.current.delete(event.pointerId);
       if (!pointers.current.size) {
+        suppressed.current = true;
         event.currentTarget.classList.remove('multi-touch');
         reset();
       }
     },
     onClickCapture: (event: MouseEvent<HTMLDivElement>): void => {
-      if (!suppressed.current) return;
-      suppressed.current = false;
+      if (!suppressed.current || event.detail === 0) return;
       event.preventDefault();
       event.stopPropagation();
     },
