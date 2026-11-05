@@ -18,7 +18,11 @@ export function PieceSetSelect() {
           if (selected) selectPieceSet(selected);
         }}
       >
-        {PIECE_SETS.map((set) => <option key={set} value={set}>{set}</option>)}
+        {PIECE_SETS.map((set) => (
+          <option key={set} value={set}>
+            {set}
+          </option>
+        ))}
       </select>
     </label>
   );
