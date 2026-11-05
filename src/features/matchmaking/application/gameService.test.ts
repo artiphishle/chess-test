@@ -249,6 +249,7 @@ void test('draw requires one offer from each participant and resets on a rematch
   assert.throws(() => service.execute('white', offer.match.id, { action: 'draw' }), /unavailable/);
   service.execute('white', offer.match.id, { action: 'rematch' });
   const again = service.execute('black', offer.match.id, { action: 'rematch' });
+  assert.ok(again);
   assert.equal(again.drawOffer, null);
   assert.equal(again.cheatUsed, false);
   assert.equal(again.phase, 'playing');
