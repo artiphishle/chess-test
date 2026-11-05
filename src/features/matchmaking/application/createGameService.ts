@@ -1,41 +1,20 @@
-import type { Color, GameState, Move, PieceKind, Result, Template } from '../../../types/chess.ts';
-import { applyCheat } from '../../chess/domain/applyCheat.ts';
+import type { Color, GameState, PieceKind, Template } from '../../../types/chess.ts';
+import type { FinishReason, Match, MatchAction, MatchPhase } from '../../../types/match.ts';
 import { createGameState } from '../../chess/domain/createGameState.ts';
-import { playMove } from '../../chess/domain/playMove.ts';
 import { readOutcome } from '../../chess/domain/readOutcome.ts';
 import { validateTemplate } from '../../templates/domain/validateTemplate.ts';
+import { applyMatchAction } from './applyMatchAction.ts';
 import { validateCoinChoices } from './validateCoinChoices.ts';
 import { validatePlayerName } from './validatePlayerName.ts';
 
-type Phase = 'waiting' | 'setup' | 'playing' | 'finished';
 type Command =
   | { action: 'create'; template: unknown }
   | { action: 'join'; matchId: string }
   | { action: 'ready'; choices: unknown }
-  | { action: 'move'; move: Move }
-  | { action: 'resign' }
-  | { action: 'draw' }
-  | { action: 'cheat'; notation: unknown }
+  | MatchAction
   | { action: 'rematch' }
   | { action: 'leave' };
-type FinishReason = Result | { winner: Color | null; reason: 'resignation' | 'departure' | 'agreement' };
-interface Match {
-  id: string;
-  white: string;
-  black: string | null;
-  template: Template;
-  phase: Phase;
-  choices: Record<Color, Record<string, PieceKind>>;
-  ready: Record<Color, boolean>;
-  rematch: Record<Color, boolean>;
-  state: GameState | null;
-  result: FinishReason | null;
-  drawOffer: Color | null;
-  cheatUsed: boolean;
-  createdAt: number;
-  lastHostSeenAt: number;
-  players: { w: string; b: string | null };
-}
+
 export interface LobbyMatch {
   readonly id: string;
   readonly name: string;
@@ -49,7 +28,7 @@ export interface LobbyMatch {
 export interface MatchSnapshot {
   readonly id: string;
   readonly color: Color;
-  readonly phase: Phase;
+  readonly phase: MatchPhase;
   readonly template: Template;
   readonly choices: Readonly<Record<string, PieceKind>>;
   readonly ready: Readonly<Record<Color, boolean>>;
@@ -242,16 +221,10 @@ class InProcessGameService {
         this.confirmChoices(match, color, command.choices);
         break;
       case 'move':
-        this.move(match, color, command.move);
-        break;
       case 'resign':
-        this.resign(match, color);
-        break;
       case 'draw':
-        this.draw(match, color);
-        break;
       case 'cheat':
-        this.cheat(match, color, command.notation);
+        applyMatchAction(match, color, command);
         break;
       case 'rematch':
         this.rematch(match, color);
@@ -290,49 +263,6 @@ class InProcessGameService {
       if (match?.white === token) match.players.w = name;
       if (match?.black === token) match.players.b = name;
     }
-  }
-
-  /*** Validate every requested move with the headless engine on the server. */
-  private move(match: Match, color: Color, move: Move): void {
-    if (match.phase !== 'playing' || match.state?.turn !== color) throw new Error('Not your turn');
-    match.state = playMove(match.state, move);
-    match.drawOffer = null;
-    match.result = readOutcome(match.state);
-    if (match.result) match.phase = 'finished';
-  }
-
-  /*** End a game by voluntary resignation. */
-  private resign(match: Match, color: Color): void {
-    if (match.phase !== 'playing' && match.phase !== 'setup')
-      throw new Error('Not an active match');
-    match.result = { winner: color === 'w' ? 'b' : 'w', reason: 'resignation' };
-    match.drawOffer = null;
-    match.phase = 'finished';
-  }
-
-  /*** Offer or accept a draw without silently resolving a one-sided request. */
-  private draw(match: Match, color: Color): void {
-    if (match.phase !== 'playing') throw new Error('Draw unavailable');
-    const opponent: Color = color === 'w' ? 'b' : 'w';
-    if (match.drawOffer === opponent) {
-      match.result = { winner: null, reason: 'agreement' };
-      match.phase = 'finished';
-      match.drawOffer = null;
-      return;
-    }
-    match.drawOffer = match.drawOffer === color ? null : color;
-  }
-
-  /*** Allow exactly one special piece placement per match from either authorized player. */
-  private cheat(match: Match, color: Color, notation: unknown): void {
-    if (match.phase !== 'playing' || !match.state) throw new Error('Cheat unavailable');
-    if (match.cheatUsed) throw new Error('Cheat already used in this match');
-    const next = applyCheat(match.state, color, notation);
-    match.state = next;
-    match.cheatUsed = true;
-    match.drawOffer = null;
-    match.result = readOutcome(next);
-    if (match.result) match.phase = 'finished';
   }
 
   /*** Create a rematch only when both connected players explicitly accept. */
