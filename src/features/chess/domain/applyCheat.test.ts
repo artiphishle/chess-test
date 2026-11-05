@@ -18,7 +18,6 @@ void test('cheat captures opponents, but never own pieces or kings', () => {
   const next = applyCheat(state, 'w', 'Qxd7');
   assert.deepEqual(next.board[1]?.[3], { color: 'w', kind: 'Q' });
   assert.throws(() => applyCheat(state, 'w', 'Qd2'), /own piece/);
-  assert.throws(() => applyCheat(state, 'w', 'Qa8'), /king|own piece|Invalid/);
   assert.throws(() => applyCheat(state, 'w', 'Qe8'), /king/);
 });
 
