@@ -4,10 +4,14 @@ import { BOARD_DIMENSIONS } from '../constants/boardDimensions.ts';
 /*** Resize a configured board while preserving anchored home ranks and complete pawn lines. */
 export function resizeTemplate(template: Template, width: number, height: number): Template {
   if (
-    !Number.isInteger(width) || !Number.isInteger(height) ||
-    width < BOARD_DIMENSIONS.min || width > BOARD_DIMENSIONS.max ||
-    height < BOARD_DIMENSIONS.min || height > BOARD_DIMENSIONS.max
-  ) return template;
+    !Number.isInteger(width) ||
+    !Number.isInteger(height) ||
+    width < BOARD_DIMENSIONS.min ||
+    width > BOARD_DIMENSIONS.max ||
+    height < BOARD_DIMENSIONS.min ||
+    height > BOARD_DIMENSIONS.max
+  )
+    return template;
   if (width === template.width && height === template.height) return template;
 
   const oldBack = template.cells[template.height - 1];
@@ -15,8 +19,8 @@ export function resizeTemplate(template: Template, width: number, height: number
   const whiteBack = oldBack && isHomeRank(oldBack, 'w') ? oldBack : null;
   const whitePawn = oldPawn && isPawnLine(oldPawn, 'w') ? oldPawn : null;
   const rows = Array.from({ length: height }, (_, y) => {
-    const anchored = (whiteBack && y === template.height - 1) ||
-      (whitePawn && y === template.height - 2);
+    const anchored =
+      (whiteBack && y === template.height - 1) || (whitePawn && y === template.height - 2);
     const source = anchored ? undefined : template.cells[y];
     return source ? resizeRank(source, width) : Array<Cell>(width).fill(null);
   });
@@ -37,8 +41,9 @@ function isHomeRank(row: readonly Cell[], color: Color): boolean {
   if (row[0].color !== color || row.at(-1)?.color !== color) return false;
   const queen = row.findIndex((cell) => cell?.kind === 'Q' && cell.color === color);
   const king = row.findIndex((cell) => cell?.kind === 'K' && cell.color === color);
-  return queen > 0 && king === queen + 1 &&
-    row.every((cell) => cell !== null && cell.color === color);
+  return (
+    queen > 0 && king === queen + 1 && row.every((cell) => cell !== null && cell.color === color)
+  );
 }
 
 /*** Preserve ordinary cells; reflow only pawn lines and recognizable home ranks. */
@@ -80,9 +85,8 @@ function resizeFlank(
     const anchor = side === 'left' ? kept.at(-1) : kept[0];
     if (anchor?.kind === 'coin') return anchor;
     const previous = i === 0 ? anchor : null;
-    const last = previous?.kind === 'N' || previous?.kind === 'B'
-      ? previous.kind
-      : i % 2 === 0 ? 'B' : 'N';
+    const last =
+      previous?.kind === 'N' || previous?.kind === 'B' ? previous.kind : i % 2 === 0 ? 'B' : 'N';
     const kind: PieceKind = last === 'B' ? 'N' : 'B';
     return { color, kind };
   });
