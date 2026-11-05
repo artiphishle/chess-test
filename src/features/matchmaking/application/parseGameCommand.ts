@@ -1,5 +1,7 @@
 export type ParsedGameCommand =
-  | Readonly<{ kind: 'help' | 'draw' | 'resign' }>
+  | Readonly<{ kind: 'help' }>
+  | Readonly<{ kind: 'draw' }>
+  | Readonly<{ kind: 'resign' }>
   | Readonly<{ kind: 'cheat'; notation: string }>
   | Readonly<{ kind: 'invalid'; message: string }>;
 
