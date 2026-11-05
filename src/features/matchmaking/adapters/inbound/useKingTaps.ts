@@ -12,7 +12,11 @@ interface Actions {
   readonly onSquare: (position: Position) => void;
 }
 
-interface Sequence { readonly color: Color | null; readonly own: number; readonly at: number }
+interface Sequence {
+  readonly color: Color | null;
+  readonly own: number;
+  readonly at: number;
+}
 
 /*** Recognize both-king draw offers and four own-king resignation requests. */
 export function useKingTaps({ state, color, onDraw, onResign, onSquare }: Actions) {
@@ -25,8 +29,8 @@ export function useKingTaps({ state, color, onDraw, onResign, onSquare }: Action
       return;
     }
     const now = Date.now();
-    const previous = now - sequence.current.at < 2200
-      ? sequence.current : { color: null, own: 0, at: 0 };
+    const previous =
+      now - sequence.current.at < 2200 ? sequence.current : { color: null, own: 0, at: 0 };
     if (previous.color && previous.color !== piece.color) {
       sequence.current = { color: null, own: 0, at: 0 };
       onDraw();
