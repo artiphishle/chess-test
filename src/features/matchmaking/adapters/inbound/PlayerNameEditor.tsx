@@ -22,8 +22,12 @@ export function PlayerNameEditor({ onName }: { readonly onName: (name: string) =
           }}
         />
       ) : (
-        <button type="button" onClick={() => setEditing(true)}
-          aria-label={`Spielername bearbeiten: ${name}`} title="Spielername bearbeiten">
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          aria-label={`Spielername bearbeiten: ${name}`}
+          title="Spielername bearbeiten"
+        >
           {name} <span aria-hidden="true">✎</span>
         </button>
       )}

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
 import type { KeyboardEvent, MouseEvent, PointerEvent } from 'react';
+import { useEffect, useRef } from 'react';
 
 import type { Position } from '../../../../types/chess.ts';
 
@@ -17,9 +17,12 @@ export function useSquareGesture(
     if (timer.current !== null) clearTimeout(timer.current);
     timer.current = null;
   };
-  useEffect(() => () => {
-    if (timer.current !== null) clearTimeout(timer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (timer.current !== null) clearTimeout(timer.current);
+    },
+    [],
+  );
   return {
     onPointerDown: (event: PointerEvent<HTMLButtonElement>) => {
       if (!onSquareLong || (event.pointerType === 'mouse' && event.button !== 0)) return;

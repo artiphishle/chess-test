@@ -16,12 +16,14 @@ export function validateCoinChoices(
     ),
   );
   if (submitted.length !== required.length) throw new Error('Incomplete coin choices');
-  return Object.fromEntries(required.map(({ key, options }) => {
-    const kind = submitted.find(([id]) => id === key)?.[1];
-    const allowed = options.find((option) => option === kind);
-    if (!allowed) throw new Error('Choice not allowed');
-    return [key, allowed];
-  }));
+  return Object.fromEntries(
+    required.map(({ key, options }) => {
+      const kind = submitted.find(([id]) => id === key)?.[1];
+      const allowed = options.find((option) => option === kind);
+      if (!allowed) throw new Error('Choice not allowed');
+      return [key, allowed];
+    }),
+  );
 }
 
 /*** Restrict untrusted JSON choice payloads to plain key-value objects. */

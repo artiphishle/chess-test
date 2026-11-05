@@ -287,7 +287,7 @@ class InProcessGameService {
   private resign(match: Match, color: Color): void {
     if (match.phase !== 'playing' && match.phase !== 'setup')
       throw new Error('Not an active match');
-    match.result = { winner: opposite(color), reason: 'resignation' };
+    match.result = { winner: color === 'w' ? 'b' : 'w', reason: 'resignation' };
     match.phase = 'finished';
   }
 
@@ -303,7 +303,7 @@ class InProcessGameService {
   /*** Unbind a departing player and award the opponent a result when applicable. */
   private leave(match: Match, color: Color, token: string): void {
     if (match.phase === 'playing' || match.phase === 'setup') {
-      match.result = { winner: opposite(color), reason: 'departure' };
+      match.result = { winner: color === 'w' ? 'b' : 'w', reason: 'departure' };
       match.phase = 'finished';
     }
     if (match.phase === 'waiting') this.matches.delete(match.id);
@@ -337,10 +337,5 @@ class InProcessGameService {
     match.result = readOutcome(match.state);
     match.phase = match.result ? 'finished' : 'playing';
   }
-}
-
-/*** Swap chess colors without exposing authorization or transport concerns. */
-function opposite(color: Color): Color {
-  return color === 'w' ? 'b' : 'w';
 }
 

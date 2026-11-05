@@ -1,18 +1,17 @@
 'use client';
 
-import { useCallback } from 'react';
-
 import { ZoraProvider } from '@ankhorage/zora/web/runtime';
+import { useCallback } from 'react';
 
 import { PieceSetProvider } from '../../../chess/adapters/inbound/PieceSetProvider.tsx';
 import { useBoardInteraction } from '../../../chess/adapters/inbound/useBoardInteraction.ts';
 import { useTemplateLibrary } from '../../../templates/adapters/inbound/useTemplateLibrary.ts';
 import { AppHeader } from './AppHeader.tsx';
-import { sendGameCommandAsync } from './sendGameCommandAsync.ts';
 import { LobbyMatchContent } from './LobbyMatchContent.tsx';
 import { MatchTabs } from './MatchTabs.tsx';
 import { MatchView } from './MatchView.tsx';
 import { PromotionDialog } from './PromotionDialog.tsx';
+import { sendGameCommandAsync } from './sendGameCommandAsync.ts';
 import { useMatchSession } from './useMatchSession.ts';
 
 /*** Compose the Ankhorage chess application from independent domain-facing UI features. */

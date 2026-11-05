@@ -1,8 +1,8 @@
 'use client';
 
 import { PieceSetSelect } from '../../../chess/adapters/inbound/PieceSetSelect.tsx';
-import { PlayerNameEditor } from './PlayerNameEditor.tsx';
 import type { MatchSnapshot } from '../../application/createGameService.ts';
+import { PlayerNameEditor } from './PlayerNameEditor.tsx';
 
 interface Props {
   readonly match: MatchSnapshot | null;

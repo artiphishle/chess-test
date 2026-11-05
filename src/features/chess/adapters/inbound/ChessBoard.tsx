@@ -76,15 +76,32 @@ interface SquareProps {
 }
 
 /*** Render one square and delegate gesture timing to the interaction hook. */
-function Square({ cell, position, selected, hinted, checked, disabled, onSquare, onSquareLong }: SquareProps) {
+function Square({
+  cell,
+  position,
+  selected,
+  hinted,
+  checked,
+  disabled,
+  onSquare,
+  onSquareLong,
+}: SquareProps) {
   const active = selected?.x === position.x && selected.y === position.y;
   const presentation = getSquarePresentation({ cell, position, active, hinted, checked });
   const gesture = useSquareGesture(position, onSquare, onSquareLong);
   return (
-    <button type="button" aria-label={presentation.label} aria-pressed={active}
-      className={presentation.className} disabled={disabled} {...gesture}>
+    <button
+      type="button"
+      aria-label={presentation.label}
+      aria-pressed={active}
+      className={presentation.className}
+      disabled={disabled}
+      {...gesture}
+    >
       {cell?.kind === 'coin' ? (
-        <span className="coin" title={cell.options.join('/')}>C</span>
+        <span className="coin" title={cell.options.join('/')}>
+          C
+        </span>
       ) : cell ? (
         <ChessPiece piece={cell} />
       ) : null}

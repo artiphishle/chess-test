@@ -55,15 +55,19 @@ void test('server rejects incomplete or forbidden private coin selections', () =
   const white = coinChoices(wide, 'w', 'N');
   assert.equal(Object.keys(white).length, 6);
   assert.throws(
-    () => service.execute('white', offer.match.id, {
-      action: 'ready', choices: { ...white, '1:0': 'N' },
-    }),
+    () =>
+      service.execute('white', offer.match.id, {
+        action: 'ready',
+        choices: { ...white, '1:0': 'N' },
+      }),
     /Incomplete/,
   );
   assert.throws(
-    () => service.execute('white', offer.match.id, {
-      action: 'ready', choices: { ...white, '1:12': 'Q' },
-    }),
+    () =>
+      service.execute('white', offer.match.id, {
+        action: 'ready',
+        choices: { ...white, '1:12': 'Q' },
+      }),
     /not allowed/,
   );
   assert.deepEqual(service.snapshot('white', offer.match.id)?.choices, {});
