@@ -43,7 +43,7 @@ export function MatchView({ session, interaction }: Props) {
         />
         <div className="board-footer">
           <span>
-            {match.players[match.color] || 'Gast'} · Du spielst{' '}
+            {match.players[match.color] ?? 'Gast'} · Du spielst{' '}
             {match.color === 'w' ? 'Weiss ♔' : 'Schwarz ♚'}
           </span>
           <span>
