@@ -39,9 +39,10 @@ function handleSquare(context: ActionState, position: Position): void {
     if (coin?.kind !== 'coin' || coin.color !== match.color || match.ready[match.color]) return;
     const key = `${position.x}:${position.y}`;
     context.setDraft((current) => {
-      const index = coin.options.indexOf(current[key] ?? coin.options[coin.options.length - 1]!);
-      const next = coin.options[(index + 1) % coin.options.length]!;
-      return { ...current, [key]: next };
+      const currentPiece = Object.entries(current).find(([id]) => id === key)?.[1];
+      const index = currentPiece === undefined ? -1 : coin.options.indexOf(currentPiece);
+      const next = coin.options.at((index + 1) % coin.options.length);
+      return next === undefined ? current : { ...current, [key]: next };
     });
     return;
   }

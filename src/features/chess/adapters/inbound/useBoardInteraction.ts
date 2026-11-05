@@ -64,8 +64,8 @@ function visibleCells(
   return match.template.cells.map((row, y) =>
     row.map((cell, x): Cell => {
       if (cell?.kind !== 'coin' || cell.color !== match.color) return cell;
-      const kind = choices[`${x}:${y}`];
-      return kind ? { kind, color: cell.color } : cell;
+      const kind = Object.entries(choices).find(([key]) => key === `${x}:${y}`)?.[1];
+      return kind === undefined ? cell : { kind, color: cell.color };
     }),
   );
 }
