@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+
 import { parseGameCommand } from './parseGameCommand.ts';
 
 void test('slash commands parse with or without the leading slash', () => {
