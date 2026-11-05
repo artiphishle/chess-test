@@ -9,7 +9,7 @@ export type Template = Readonly<{
   name: string;
   width: number;
   height: number;
-  turn: Color;
+  turn: Color | 'random';
   cells: readonly (readonly Cell[])[];
 }>;
 type Rights = Readonly<{ K: boolean; Q: boolean }>;

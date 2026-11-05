@@ -13,6 +13,7 @@ import { stateSignature } from './stateSignature.ts';
 export function createGameState(
   template: Template,
   choices: Readonly<Record<Color, Readonly<Record<string, PieceKind>>>>,
+  randomTurn: Color = 'w',
 ): GameState {
   const board: Board = template.cells.map((row, y) =>
     row.map((cell, x): Piece | null => {
@@ -42,7 +43,7 @@ export function createGameState(
     board,
     width: template.width,
     height: template.height,
-    turn: template.turn,
+    turn: template.turn === 'random' ? randomTurn : template.turn,
     castling,
     enPassant: null,
     halfmove: 0,
