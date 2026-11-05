@@ -1,5 +1,6 @@
 'use client';
 
+import { PIECE_SETS } from '../../constants/pieceSets.ts';
 import { usePieceSet } from './usePieceSet.ts';
 
 /*** Expose a persistent per-browser SVG style switch without touching any game setup. */
@@ -13,14 +14,11 @@ export function PieceSetSelect() {
         value={pieceSet}
         onChange={(event) => {
           const { value } = event.currentTarget;
-          if (value === 'chessnut' || value === 'alpha' || value === 'companion') {
-            selectPieceSet(value);
-          }
+          const selected = PIECE_SETS.find((entry) => entry === value);
+          if (selected) selectPieceSet(selected);
         }}
       >
-        <option value="chessnut">Chessnut</option>
-        <option value="alpha">Alpha (privat)</option>
-        <option value="companion">Companion</option>
+        {PIECE_SETS.map((set) => <option key={set} value={set}>{set}</option>)}
       </select>
     </label>
   );
