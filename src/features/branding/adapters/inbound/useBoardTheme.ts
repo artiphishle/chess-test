@@ -16,7 +16,7 @@ export function useBoardTheme() {
   }, []);
   return {
     index,
-    theme: BOARD_THEMES[index] ?? BOARD_THEMES[0],
+    theme: BOARD_THEMES.at(index) ?? BOARD_THEMES[0],
     cycleTheme,
   };
 }

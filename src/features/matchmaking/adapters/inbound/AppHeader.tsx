@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import { useBoardTheme } from '../../../branding/adapters/inbound/useBoardTheme.ts';
 import { PieceSetSelect } from '../../../chess/adapters/inbound/PieceSetSelect.tsx';
 import type { MatchSnapshot } from '../../application/createGameService.ts';
@@ -20,10 +22,10 @@ export function AppHeader({ match, error, clearError, onName, onCommands }: Prop
   return (
     <>
       <header className="app-header">
-        <a className="brand" href="/" aria-label="GrossMeister Startseite">
+        <Link className="brand" href="/" aria-label="GrossMeister Startseite">
           <span className="brand-wordmark" role="img" aria-label="GM GrossMeister" />
           <span className="brand-theme-name">{boardTheme.name}</span>
-        </a>
+        </Link>
         <div className="header-controls">
           <PlayerNameEditor onName={onName} />
           <button
