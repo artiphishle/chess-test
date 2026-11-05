@@ -11,8 +11,8 @@ export function parseGameCommand(text: string): ParsedGameCommand {
   if (input.length > 64) return { kind: 'invalid', message: 'Befehl ist zu lang' };
   const match = /^\/?(help|draw|resign|cheat)(?:\s+(.*))?$/i.exec(input);
   if (!match) return { kind: 'invalid', message: 'Unbekannter Befehl. /help zeigt alle Befehle.' };
-  const command = match[1]!.toLowerCase();
-  const argument = match[2]?.trim();
+  const command = match[1].toLowerCase();
+  const argument = match[2] ? match[2].trim() : undefined;
   if (command === 'cheat') return argument
     ? { kind: 'cheat', notation: argument }
     : { kind: 'invalid', message: 'Schreib z. B. /cheat Qf4' };
