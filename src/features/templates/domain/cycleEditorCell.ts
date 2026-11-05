@@ -8,7 +8,7 @@ const coinOptions: readonly (readonly PieceKind[])[] = [
   ['N', 'B', 'R', 'Q'],
 ];
 
-/*** Cycle fixed pieces on a tap, or toggle their side and coin mode on a hold. */
+/*** Cycle piece kinds without changing the chosen owner; a hold alone changes the category. */
 export function cycleEditorCell(cell: Cell, gesture: 'tap' | 'hold'): Cell {
   if (gesture === 'hold') {
     if (!cell) return { color: 'b', kind: 'P' };
@@ -21,7 +21,7 @@ export function cycleEditorCell(cell: Cell, gesture: 'tap' | 'hold'): Cell {
   if (cell.kind === 'coin') {
     const index = coinOptions.findIndex((options) => options.join() === cell.options.join());
     if (index === coinOptions.length - 1) {
-      return { ...cell, color: cell.color === 'w' ? 'b' : 'w', options: coinOptions[0]! };
+      return { ...cell, options: coinOptions[0]! };
     }
     return { ...cell, options: coinOptions[Math.max(0, index + 1)]! };
   }

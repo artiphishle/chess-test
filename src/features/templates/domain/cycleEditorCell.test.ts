@@ -26,14 +26,22 @@ void test('holds cycle white, black, choice coin and white without resetting fix
   assert.deepEqual(cycleEditorCell({ color: 'w', kind: 'B' }, 'hold'), { color: 'b', kind: 'B' });
 });
 
-void test('coin taps cycle option presets and owner color without removing coin', () => {
+void test('coin taps cycle option presets without changing the owner', () => {
   const first = cycleEditorCell({ color: 'b', kind: 'P' }, 'hold');
   const nb = cycleEditorCell(first, 'tap');
   assert.deepEqual(nb, { kind: 'coin', color: 'b', options: ['N', 'B'] });
   const major = cycleEditorCell(nb, 'tap');
   assert.deepEqual(major, { kind: 'coin', color: 'b', options: ['R', 'Q'] });
   const promotion = cycleEditorCell(major, 'tap');
-  const white = cycleEditorCell(promotion, 'tap');
-  assert.equal(white?.color, 'w');
-  assert.equal(white?.kind, 'coin');
+  const black = cycleEditorCell(promotion, 'tap');
+  assert.equal(black?.color, 'b');
+  assert.equal(black?.kind, 'coin');
+});
+
+void test('repeated short clicks after holding a black pawn remain black', () => {
+  const pawn = cycleEditorCell(null, 'hold');
+  const knight = cycleEditorCell(pawn, 'tap');
+  const bishop = cycleEditorCell(knight, 'tap');
+  assert.deepEqual(knight, { color: 'b', kind: 'N' });
+  assert.deepEqual(bishop, { color: 'b', kind: 'B' });
 });

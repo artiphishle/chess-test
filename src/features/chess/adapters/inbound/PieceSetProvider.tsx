@@ -3,6 +3,7 @@
 import { type ReactNode, useCallback, useSyncExternalStore } from 'react';
 
 import type { PieceSet } from '../../../../types/chessPresentation.ts';
+import { PIECE_SETS } from '../../constants/pieceSets.ts';
 import { pieceSetContext } from './pieceSetContext.ts';
 
 const storageKey = 'chess-test-piece-set';
@@ -24,7 +25,7 @@ export function PieceSetProvider({ children }: { readonly children: ReactNode })
 /*** Read persisted piece art with a safe default for server-side rendering. */
 function getSnapshot(): PieceSet {
   const stored = window.localStorage.getItem(storageKey);
-  return stored === 'alpha' || stored === 'companion' ? stored : 'chessnut';
+  return PIECE_SETS.find((entry) => entry === stored) ?? 'chessnut';
 }
 
 /*** Provide a stable SSR snapshot until the browser can read its own preference. */

@@ -16,7 +16,7 @@
     "knip:check": "ankhorage-knip",
     "format": "ankhorage-prettier --write .",
     "format:check": "ankhorage-prettier --check .",
-    "test": "node --test src/features/chess/domain/chess.test.ts src/features/matchmaking/application/gameService.test.ts src/features/matchmaking/composition/createGameApi.test.ts src/features/matchmaking/application/readMatchAttention.test.ts src/features/templates/domain/validateTemplate.test.ts src/features/templates/domain/cycleEditorCell.test.ts"
+    "test": "node --test src/features/chess/domain/chess.test.ts src/features/matchmaking/application/gameService.test.ts src/features/matchmaking/composition/createGameApi.test.ts src/features/matchmaking/application/readMatchAttention.test.ts src/features/templates/domain/validateTemplate.test.ts src/features/templates/domain/cycleEditorCell.test.ts src/features/templates/domain/resizeTemplate.test.ts"
   },
   "dependencies": {
     "@ankhorage/api": "^0.3.1",

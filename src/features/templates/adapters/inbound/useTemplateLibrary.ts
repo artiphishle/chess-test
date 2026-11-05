@@ -14,7 +14,7 @@ export interface TemplateLibrary {
 
 /*** Keep editable local presets independent of every server-locked match snapshot. */
 export function useTemplateLibrary(): TemplateLibrary {
-  const [template, setTemplate] = useState<Template>(presets[0]!);
+  const [template, setTemplate] = useState<Template>({ ...presets[0]!, turn: 'random' });
   const [saved, setSaved] = useState<readonly Template[]>([]);
   useEffect(() => {
     const frame = requestAnimationFrame(() => setSaved(loadSavedTemplates()));

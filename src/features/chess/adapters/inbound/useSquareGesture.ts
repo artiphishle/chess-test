@@ -28,9 +28,10 @@ export function useSquareGesture(
       if (!onSquareLong || (event.pointerType === 'mouse' && event.button !== 0)) return;
       consumed.current = false;
       cancel();
+      const square = event.currentTarget;
       timer.current = setTimeout(() => {
         consumed.current = true;
-        onSquareLong(position);
+        if (!square.closest('.editor-interactive.multi-touch')) onSquareLong(position);
       }, 500);
     },
     onPointerUp: cancel,
@@ -46,12 +47,10 @@ export function useSquareGesture(
         onSquareLong(position);
       }
     },
-    onClick: () => {
-      if (consumed.current) {
-        consumed.current = false;
-        return;
-      }
-      onSquare(position);
+    onClick: (event: MouseEvent<HTMLButtonElement>) => {
+      if (event.currentTarget.closest('.editor-interactive.multi-touch')) return;
+      if (!consumed.current) onSquare(position);
+      consumed.current = false;
     },
   };
 }
