@@ -35,7 +35,7 @@ export function ChessApp() {
               onSelect={session.selectMatch}
             />
             {session.match ? (
-              <ActiveMatchContent key={session.match.id} session={session} />
+              <ActiveMatchContent key={`${session.match.id}:${session.match.phase}`} session={session} />
             ) : (
               <LobbyView
                 library={library}

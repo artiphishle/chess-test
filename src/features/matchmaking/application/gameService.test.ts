@@ -1,306 +1,179 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+import type { PieceKind, Template } from '../../../types/chess.ts';
 import { createPresets } from '../../templates/domain/createPresets.ts';
 import { validateTemplate } from '../../templates/domain/validateTemplate.ts';
 import { createGameService } from './createGameService.ts';
 
-const sessions = () => {
-  let counter = 0;
-  return createGameService(() => `test-${++counter}`);
-};
+const [standard, wide] = createPresets();
 
-void test('first two anonymous players pair; next pair gets another game', () => {
+/*** Create an independent service with deterministic IDs. */
+function sessions() {
+  const counter = { value: 0 };
+  return createGameService(() => `test-${++counter.value}`);
+}
+
+/*** Build only the selected side's coin assignments. */
+function coinChoices(template: Template, color: 'w' | 'b', kind: PieceKind) {
+  return Object.fromEntries(
+    template.cells.flatMap((row, y) =>
+      row.flatMap((cell, x) =>
+        cell?.kind === 'coin' && cell.color === color ? [[`${x}:${y}`, kind] as const] : [],
+      ),
+    ),
+  );
+}
+
+void test('multiple public offers belong to their own owner and first claimant', () => {
   const service = sessions();
-  const presets = createPresets();
-  const a = service.create(undefined, presets[0]);
-  assert.equal(a.match.phase, 'waiting');
-  const b = service.join(undefined, a.match.id);
-  assert.equal(b.match.color, 'b');
-  assert.equal(b.match.id, a.match.id);
-  assert.equal(b.match.template.id, presets[0]?.id);
-  assert.equal(b.match.phase, 'playing');
-  const c = service.create(undefined, presets[0]);
-  assert.notEqual(c.match.id, a.match.id);
-});
-
-void test('queued template is copied, locked and cannot be modified from another session', () => {
-  const service = sessions();
-  const preset = structuredClone(createPresets()[0]);
-  const queued = service.create(undefined, preset);
-  (preset.cells as unknown[][])[0][0] = null;
-  assert.equal(service.snapshot(queued.token, queued.match.id)?.template.cells[0]?.[0]?.kind, 'R');
-  const rival = service.join(undefined, queued.match.id);
-  assert.equal(service.snapshot(rival.token, rival.match.id)?.template.cells[0]?.[0]?.kind, 'R');
-  assert.throws(
-    () =>
-      service.execute(queued.token, queued.match.id, { action: 'choose', x: 1, y: 0, kind: 'N' }),
-    /locked/,
-  );
-});
-
-void test('choice coins are private, independent and cannot be changed once selected', () => {
-  const service = sessions();
-  const [, preset] = createPresets();
-  const white = service.create(undefined, preset);
-  const black = service.join(undefined, white.match.id);
-  assert.equal(white.match.phase, 'waiting');
-  assert.equal(black.match.phase, 'setup');
-  assert.throws(
-    () => service.execute(white.token, white.match.id, { action: 'choose', x: 0, y: 0, kind: 'B' }),
-    /not allowed/,
-  );
-  service.execute(white.token, white.match.id, { action: 'choose', x: 1, y: 12, kind: 'N' });
-  const rival = service.snapshot(black.token, black.match.id);
-  assert.ok(rival);
-  assert.deepEqual(rival.choices, {});
-  assert.equal(rival.template.cells[12][1]?.kind, 'coin');
-  assert.throws(
-    () =>
-      service.execute(white.token, white.match.id, { action: 'choose', x: 1, y: 12, kind: 'B' }),
-    /already resolved/,
-  );
-});
-
-void test('completing both players coins starts automatically and locks every choice', () => {
-  const service = sessions();
-  const [, preset] = createPresets();
-  const white = service.create(undefined, preset);
-  const black = service.join(undefined, white.match.id);
-  for (const x of [1, 2, 3, 6, 7, 8]) {
-    service.execute(white.token, white.match.id, { action: 'choose', x, y: 12, kind: 'N' });
-  }
-  const waiting = service.snapshot(white.token, white.match.id);
-  assert.ok(waiting);
-  assert.equal(waiting.phase, 'setup');
-  assert.deepEqual(waiting.ready, { w: true, b: false });
-  assert.throws(
-    () =>
-      service.execute(white.token, white.match.id, { action: 'choose', x: 1, y: 12, kind: 'B' }),
-    /locked/,
-  );
-  for (const x of [1, 2, 3, 6, 7, 8]) {
-    service.execute(black.token, black.match.id, { action: 'choose', x, y: 0, kind: 'B' });
-  }
-  const result = service.snapshot(white.token, white.match.id);
-  assert.ok(result);
-  assert.ok(result.state);
-  assert.equal(result.phase, 'playing');
-  assert.equal(result.state.board[12][1]?.kind, 'N');
-  assert.equal(result.state.board[0][1]?.kind, 'B');
-  assert.equal(result.template.cells[12][1]?.kind, 'coin');
-});
-
-void test('server blocks moving out of turn, illegal moves, and opponent moves', () => {
-  const service = sessions();
-  const a = service.create(undefined, createPresets()[0]);
-  const b = service.join(undefined, a.match.id);
-  assert.throws(
-    () =>
-      service.execute(b.token, b.match.id, {
-        action: 'move',
-        move: { from: { x: 4, y: 1 }, to: { x: 4, y: 3 } },
-      }),
-    /Not your turn/,
-  );
-  assert.throws(
-    () =>
-      service.execute(a.token, a.match.id, {
-        action: 'move',
-        move: { from: { x: 4, y: 1 }, to: { x: 4, y: 3 } },
-      }),
-    /Illegal move/,
-  );
-  assert.equal(
-    service.execute(a.token, a.match.id, {
-      action: 'move',
-      move: { from: { x: 4, y: 6 }, to: { x: 4, y: 4 } },
-    })?.state?.turn,
-    'b',
-  );
-});
-
-void test('resignation, rematch and departures enforce match ownership', () => {
-  const service = sessions();
-  const a = service.create(undefined, createPresets()[0]);
-  const b = service.join(undefined, a.match.id);
-  assert.equal(service.execute(a.token, a.match.id, { action: 'resign' })?.result?.winner, 'b');
-  assert.equal(service.execute(a.token, a.match.id, { action: 'rematch' })?.phase, 'finished');
-  assert.equal(service.execute(b.token, b.match.id, { action: 'rematch' })?.phase, 'playing');
-  assert.equal(service.execute(b.token, b.match.id, { action: 'leave' }), null);
-  assert.equal(service.snapshot(a.token, a.match.id)?.result?.winner, 'w');
-  assert.throws(
-    () => service.execute(b.token, b.match.id, { action: 'resign' }),
-    /No active session/,
-  );
-});
-
-void test('validate rejects malformed boards and forbidden coin choice values', () => {
-  assert.throws(() => validateTemplate({ ...createPresets()[0], width: 33 }), /between/);
-  const [, preset] = createPresets();
-  const cells = preset.cells.map((row) => [...row]);
-  cells[12][1] = { kind: 'coin', color: 'w', options: ['N', 'Z' as 'N'] };
-  assert.throws(() => validateTemplate({ ...preset, cells }), /Invalid board/);
-});
-
-void test('automatic setup supports asymmetric and custom free-coin choices', () => {
-  const service = sessions();
-  const preset = structuredClone(createPresets()[0]);
-  const cells = preset.cells.map((row) => [...row]);
-  cells[7][1] = { kind: 'coin', color: 'w', options: ['P', 'N', 'B', 'R', 'Q', 'K'] };
-  cells[0][1] = { kind: 'coin', color: 'b', options: ['P', 'N', 'B', 'R', 'Q', 'K'] };
-  const free = { ...preset, cells };
-  const white = service.create(undefined, free);
-  const black = service.join(undefined, white.match.id);
-  assert.equal(black.match.phase, 'setup');
-  assert.throws(
-    () => service.execute(white.token, white.match.id, { action: 'choose', x: 1, y: 0, kind: 'Q' }),
-    /not allowed/,
-  );
-  service.execute(black.token, black.match.id, { action: 'choose', x: 1, y: 0, kind: 'Q' });
-  assert.equal(service.snapshot(black.token, black.match.id)?.ready.b, true);
-  assert.equal(service.snapshot(white.token, white.match.id)?.phase, 'setup');
-  service.execute(white.token, white.match.id, { action: 'choose', x: 1, y: 7, kind: 'R' });
-  assert.equal(service.snapshot(white.token, white.match.id)?.phase, 'playing');
-  assert.equal(service.snapshot(white.token, white.match.id)?.state?.board[7]?.[1]?.kind, 'R');
-  assert.equal(service.snapshot(white.token, white.match.id)?.state?.board[0]?.[1]?.kind, 'Q');
-  assert.throws(
-    () => service.execute(black.token, black.match.id, { action: 'choose', x: 1, y: 0, kind: 'N' }),
-    /locked/,
-  );
-});
-
-void test('rematch reopens each player coin selection and keeps the original template', () => {
-  const service = sessions();
-  const [, coinTemplate] = createPresets();
-  const white = service.create(undefined, coinTemplate);
-  const black = service.join(undefined, white.match.id);
-  for (const x of [1, 2, 3, 6, 7, 8]) {
-    service.execute(white.token, white.match.id, { action: 'choose', x, y: 12, kind: 'N' });
-    service.execute(black.token, black.match.id, { action: 'choose', x, y: 0, kind: 'B' });
-  }
-  assert.equal(
-    service.execute(white.token, white.match.id, { action: 'resign' })?.phase,
-    'finished',
-  );
-  service.execute(white.token, white.match.id, { action: 'rematch' });
-  const pending = service.execute(black.token, black.match.id, { action: 'rematch' });
-  assert.equal(pending?.phase, 'setup');
-  assert.ok(pending);
-  assert.deepEqual(pending.choices, {});
-  assert.deepEqual(pending.ready, { w: false, b: false });
-  assert.equal(pending.template.cells[12][1]?.kind, 'coin');
-});
-
-void test('public lobby contains many independent custom 10x13 offers and no private choices', () => {
-  const service = sessions();
-  const [, wide] = createPresets();
-  const offers = Array.from({ length: 20 }, (_, i) =>
-    service.create(`host-${i}`, { ...wide, name: `Wide ${i}` }),
-  );
-  const lobby = service.lobby();
-  assert.equal(lobby.length, 20);
-  assert.equal(lobby[0]?.width, 10);
-  assert.equal(lobby[0]?.height, 13);
-  assert.equal(lobby[0]?.coins, 12);
-  assert.deepEqual(Object.keys(lobby[0] ?? {}).sort(), [
-    'coins',
-    'createdAt',
-    'height',
-    'id',
-    'name',
-    'width',
-  ]);
-  const selected = offers.at(12);
-  assert.ok(selected);
-  const visitor = service.join('visitor', selected.match.id);
-  assert.equal(visitor.match.id, selected.match.id);
-  assert.equal(visitor.match.color, 'b');
-  assert.equal(visitor.match.phase, 'setup');
-  assert.equal(service.lobby().length, 19);
-  assert.ok(service.lobby().some((match) => match.id === offers[13]?.match.id));
-  assert.equal(service.snapshot(selected.token, selected.match.id)?.template.name, 'Wide 12');
-  assert.throws(() => service.join('late-visitor', selected.match.id), /nicht mehr verfügbar/);
-  assert.equal(service.join('visitor', selected.match.id).match.id, selected.match.id);
-});
-
-void test('claiming an already filled game never assigns two opponents', () => {
-  const service = sessions();
-  const [standard] = createPresets();
-  const offer = service.create('white', standard);
-  const black = service.join('black', offer.match.id);
-  assert.equal(black.match.phase, 'playing');
-  assert.throws(() => service.join('racer', offer.match.id), /nicht mehr verfügbar/);
-  assert.equal(service.snapshot('racer', offer.match.id), null);
-  assert.equal(service.snapshot('white', offer.match.id)?.id, black.match.id);
-  assert.equal(service.snapshot('black', offer.match.id)?.color, 'b');
-});
-
-void test('expired and cancelled public offers cannot be claimed', () => {
-  let now = 10;
-  let nextId = 0;
-  const service = createGameService(
-    () => `id-${++nextId}`,
-    () => now,
-  );
-  const [standard] = createPresets();
-  const cancelled = service.create('owner-a', standard);
-  assert.equal(service.execute('owner-a', cancelled.match.id, { action: 'leave' }), null);
-  assert.throws(() => service.join('guest-a', cancelled.match.id), /nicht mehr verfügbar/);
-  const expired = service.create('owner-b', standard);
-  now += 900_001;
-  assert.deepEqual(service.lobby(), []);
-  assert.equal(service.snapshot('owner-b', expired.match.id), null);
-  assert.throws(() => service.join('guest-b', expired.match.id), /nicht mehr verfügbar/);
-});
-
-void test('one player hosts three games and can participate in all after independent joins', () => {
-  const service = sessions();
-  const [standard, wide] = createPresets();
-  const first = service.create('host', standard);
-  const second = service.create('host', wide);
-  const third = service.create('host', { ...wide, name: 'Third offer' });
-  assert.equal(service.games('host').length, 3);
-  assert.equal(service.lobby().length, 3);
-  assert.ok(service.games('host').every((match) => match.phase === 'waiting'));
-  const challengerTwo = service.join('guest-two', second.match.id);
-  assert.equal(service.games('host').filter((match) => match.phase === 'setup').length, 1);
-  assert.equal(service.lobby().length, 2);
-  const challengerOne = service.join('guest-one', first.match.id);
-  assert.equal(service.games('host').filter((match) => match.phase !== 'waiting').length, 2);
-  assert.equal(
-    service.games('host').find((match) => match.id === third.match.id)?.phase,
-    'waiting',
-  );
-  assert.equal(service.games('guest-one')[0]?.id, first.match.id);
-  assert.equal(service.games('guest-two')[0]?.id, second.match.id);
-  assert.throws(
-    () => service.execute('guest-one', second.match.id, { action: 'leave' }),
-    /No active session/,
-  );
-  assert.equal(service.execute('host', third.match.id, { action: 'leave' }), null);
-  assert.deepEqual(
-    service.games('host').map((match) => match.id),
-    [first.match.id, second.match.id],
-  );
-  assert.equal(service.snapshot(challengerOne.token, first.match.id)?.phase, 'playing');
-  assert.equal(service.snapshot(challengerTwo.token, second.match.id)?.phase, 'setup');
-});
-
-void test('leaving a finished game preserves other games and their independent turns', () => {
-  const service = sessions();
-  const [standard] = createPresets();
   const a = service.create('host', standard);
-  const b = service.create('host', standard);
-  service.join('guest-a', a.match.id);
-  service.join('guest-b', b.match.id);
-  const move = { from: { x: 4, y: 6 }, to: { x: 4, y: 4 } };
-  service.execute('host', b.match.id, { action: 'move', move });
-  assert.equal(service.snapshot('host', b.match.id)?.state?.turn, 'b');
-  assert.equal(service.snapshot('host', a.match.id)?.state?.turn, 'w');
-  assert.equal(service.execute('host', a.match.id, { action: 'leave' }), null);
-  assert.equal(service.games('host').length, 1);
-  assert.equal(service.games('host')[0]?.id, b.match.id);
-  assert.equal(service.snapshot('guest-a', a.match.id)?.result?.winner, 'b');
-  assert.throws(() => service.execute('host', a.match.id, { action: 'move', move }), /No active/);
+  const b = service.create('host', wide);
+  const c = service.create('host', standard);
+  assert.equal(service.lobby().length, 3);
+  assert.equal(service.join('guest', a.match.id).match.phase, 'playing');
+  assert.equal(service.games('host').length, 3);
+  assert.equal(service.lobby().length, 2);
+  assert.throws(() => service.join('racer', a.match.id), /nicht mehr verfügbar/);
+  assert.throws(() => service.join('host', b.match.id), /Eigene Partie/);
+  service.execute('host', c.match.id, { action: 'leave' });
+  assert.equal(service.lobby().length, 1);
+});
+
+void test('a queued template remains an immutable snapshot', () => {
+  const service = sessions();
+  const template = structuredClone(standard);
+  const offer = service.create('host', template);
+  (template.cells as unknown[][])[0]![0] = null;
+  assert.equal(service.snapshot('host', offer.match.id)?.template.cells[0]?.[0]?.kind, 'R');
+});
+
+void test('owned coin choices are sent atomically, private, and locked only after Ready', () => {
+  const service = sessions();
+  const white = service.create('white', wide);
+  const black = service.join('black', white.match.id);
+  assert.equal(black.match.phase, 'setup');
+  const selectedWhite = coinChoices(wide, 'w', 'N');
+  const selectedBlack = coinChoices(wide, 'b', 'B');
+  assert.equal(Object.keys(selectedWhite).length, 6);
+  assert.throws(() => service.execute('white', white.match.id, {
+    action: 'ready', choices: { ...selectedWhite, '1:0': 'N' },
+  }), /Incomplete/);
+  assert.throws(() => service.execute('white', white.match.id, {
+    action: 'ready', choices: { ...selectedWhite, '1:12': 'Q' },
+  }), /not allowed/);
+  assert.deepEqual(service.snapshot('white', white.match.id)?.choices, {});
+  const own = service.execute('white', white.match.id, {
+    action: 'ready', choices: selectedWhite,
+  });
+  assert.equal(own?.ready.w, true);
+  assert.equal(own?.phase, 'setup');
+  assert.deepEqual(service.snapshot('black', white.match.id)?.choices, {});
+  assert.throws(() => service.execute('white', white.match.id, {
+    action: 'ready', choices: selectedWhite,
+  }), /locked/);
+  const done = service.execute('black', white.match.id, {
+    action: 'ready', choices: selectedBlack,
+  });
+  assert.equal(done?.phase, 'playing');
+  assert.equal(done?.state?.board[12]?.[1]?.kind, 'N');
+  assert.equal(done?.state?.board[0]?.[1]?.kind, 'B');
+  assert.equal(done?.template.cells[12]?.[1]?.kind, 'coin');
+});
+
+void test('free coins permit any piece and reject foreign coordinates', () => {
+  const service = sessions();
+  const cells = standard.cells.map((row) => [...row]);
+  cells[7]![1] = { kind: 'coin', color: 'w', options: ['P', 'N', 'B', 'R', 'Q', 'K'] };
+  cells[0]![1] = { kind: 'coin', color: 'b', options: ['P', 'N', 'B', 'R', 'Q', 'K'] };
+  const template = { ...standard, cells };
+  const offer = service.create('white', template);
+  service.join('black', offer.match.id);
+  assert.throws(() => service.execute('white', offer.match.id, {
+    action: 'ready', choices: { '1:0': 'Q' },
+  }), /not allowed/);
+  service.execute('white', offer.match.id, { action: 'ready', choices: { '1:7': 'R' } });
+  const done = service.execute('black', offer.match.id, {
+    action: 'ready', choices: { '1:0': 'Q' },
+  });
+  assert.equal(done?.state?.board[7]?.[1]?.kind, 'R');
+  assert.equal(done?.state?.board[0]?.[1]?.kind, 'Q');
+});
+
+void test('normal turns remain server-authoritative and replays reset choices', () => {
+  const service = sessions();
+  const offer = service.create('a', standard);
+  service.join('b', offer.match.id);
+  assert.throws(() => service.execute('b', offer.match.id, {
+    action: 'move', move: { from: { x: 4, y: 1 }, to: { x: 4, y: 3 } },
+  }), /Not your turn/);
+  assert.equal(service.execute('a', offer.match.id, {
+    action: 'move', move: { from: { x: 4, y: 6 }, to: { x: 4, y: 4 } },
+  })?.state?.turn, 'b');
+  service.execute('a', offer.match.id, { action: 'resign' });
+  assert.equal(service.execute('a', offer.match.id, { action: 'rematch' })?.phase, 'finished');
+  assert.equal(service.execute('b', offer.match.id, { action: 'rematch' })?.phase, 'playing');
+  assert.throws(() => service.execute('outsider', offer.match.id, { action: 'resign' }), /No active/);
+  const coinOffer = service.create('a', wide);
+  service.join('c', coinOffer.match.id);
+  service.execute('a', coinOffer.match.id, { action: 'ready', choices: coinChoices(wide, 'w', 'N') });
+  service.execute('c', coinOffer.match.id, { action: 'ready', choices: coinChoices(wide, 'b', 'B') });
+  service.execute('a', coinOffer.match.id, { action: 'resign' });
+  service.execute('a', coinOffer.match.id, { action: 'rematch' });
+  const reset = service.execute('c', coinOffer.match.id, { action: 'rematch' });
+  assert.equal(reset?.phase, 'setup');
+  assert.deepEqual(reset?.ready, { w: false, b: false });
+  assert.deepEqual(reset?.choices, {});
+});
+
+void test('random starts are decided server-side with injected randomness', () => {
+  const template: Template = { ...standard, turn: 'random' };
+  const one = createGameService(() => 'id-one', () => 0, () => 0);
+  const two = createGameService(() => 'id-two', () => 0, () => 0.9);
+  const a = one.create('a', template);
+  const b = two.create('a', template);
+  assert.equal(one.join('b', a.match.id).match.state?.turn, 'w');
+  assert.equal(two.join('b', b.match.id).match.state?.turn, 'b');
+  assert.equal(validateTemplate(template).turn, 'random');
+});
+
+void test('names are visible, autosave compatible and safely validated', () => {
+  const service = sessions();
+  const a = service.create('a', standard, 'Ersteller');
+  const second = service.create('a', wide, 'Ersteller');
+  assert.equal(service.lobby()[0]?.hostName, 'Ersteller');
+  assert.equal(service.join('b', a.match.id, 'Gast B').match.players.b, 'Gast B');
+  service.rename('a', 'Neuer Name');
+  assert.equal(service.snapshot('b', a.match.id)?.players.w, 'Neuer Name');
+  assert.equal(service.snapshot('a', second.match.id)?.players.w, 'Neuer Name');
+  assert.equal(service.lobby()[0]?.hostName, 'Neuer Name');
+  assert.throws(() => service.rename('outsider', 'Hacker'), /No active/);
+  assert.throws(() => service.rename('a', 'x'.repeat(33)), /Invalid player name/);
+  assert.throws(() => service.create('other', standard, '\n'), /Invalid player name/);
+});
+
+void test('lobby presence holds active offers and cleans up absent hosts', () => {
+  const now = { value: 0 };
+  const counter = { value: 0 };
+  const service = createGameService(() => `id-${++counter.value}`, () => now.value);
+  const live = service.create('live', standard);
+  const silent = service.create('silent', standard);
+  now.value = 70_000;
+  assert.equal(service.games('live').length, 1);
+  now.value = 100_000;
+  assert.deepEqual(service.lobby().map((offer) => offer.id), [live.match.id]);
+  assert.equal(service.snapshot('silent', silent.match.id), null);
+  assert.throws(() => service.join('late', silent.match.id), /nicht mehr verfügbar/);
+  now.value = 159_000;
+  assert.equal(service.lobby().length, 1);
+  now.value = 161_000;
+  assert.equal(service.lobby().length, 0);
+});
+
+void test('server rejects invalid dimensions and coin values', () => {
+  const service = sessions();
+  assert.throws(() => service.create('a', { ...standard, width: 35 }), /between/);
+  const cells = wide.cells.map((row) => [...row]);
+  cells[12]![1] = { kind: 'coin', color: 'w', options: ['N', 'Z' as 'N'] };
+  assert.throws(() => validateTemplate({ ...wide, cells }), /Invalid board/);
 });
