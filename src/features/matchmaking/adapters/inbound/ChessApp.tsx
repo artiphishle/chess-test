@@ -41,11 +41,7 @@ export function ChessApp() {
             onCommands={commands.openCommands}
           />
           <div className="page-content">
-            <CurrentMatch
-              session={session}
-              library={library}
-              onResign={commands.requestResign}
-            />
+            <CurrentMatch session={session} library={library} onResign={commands.requestResign} />
           </div>
           {commands.commandsOpen ? (
             <CommandOverlay onClose={commands.closeCommands} onSubmit={commands.submit} />
