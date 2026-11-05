@@ -14,8 +14,8 @@ import { MatchTabs } from './MatchTabs.tsx';
 import { MatchView } from './MatchView.tsx';
 import { PromotionDialog } from './PromotionDialog.tsx';
 import { sendGameCommandAsync } from './sendGameCommandAsync.ts';
-import { useMatchSession } from './useMatchSession.ts';
 import { useCommandController } from './useCommandController.ts';
+import { useMatchSession } from './useMatchSession.ts';
 
 /*** Compose the Ankhorage chess application from independent domain-facing UI features. */
 export function ChessApp() {
@@ -56,7 +56,11 @@ export function ChessApp() {
             <CommandOverlay onClose={commands.closeCommands} onSubmit={commands.submit} />
           ) : null}
           {commands.resigningId ? (
-            <ConfirmResignDialog busy={session.busy} onCancel={commands.cancelResign} onConfirm={commands.confirmResign} />
+            <ConfirmResignDialog
+              busy={session.busy}
+              onCancel={commands.cancelResign}
+              onConfirm={commands.confirmResign}
+            />
           ) : null}
           <footer>
             ANKHORAGE · CHESS TEST <span>Variable boards. Real chess rules.</span>
@@ -68,7 +72,10 @@ export function ChessApp() {
 }
 
 /*** Reset transient board selection when switching between unrelated game tabs. */
-function ActiveMatchContent({ session, onResign }: {
+function ActiveMatchContent({
+  session,
+  onResign,
+}: {
   readonly session: ReturnType<typeof useMatchSession>;
   readonly onResign: (id: string) => void;
 }) {
