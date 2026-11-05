@@ -3,6 +3,8 @@ import { createGameState } from '../../chess/domain/createGameState.ts';
 import { playMove } from '../../chess/domain/playMove.ts';
 import { readOutcome } from '../../chess/domain/readOutcome.ts';
 import { validateTemplate } from '../../templates/domain/validateTemplate.ts';
+import { validateCoinChoices } from './validateCoinChoices.ts';
+import { validatePlayerName } from './validatePlayerName.ts';
 
 type Phase = 'waiting' | 'setup' | 'playing' | 'finished';
 type Command =
@@ -164,7 +166,7 @@ class InProcessGameService {
     name?: unknown,
   ): { token: string; match: MatchSnapshot } {
     const template = validateTemplate(proposedTemplate);
-    const displayName = validateName(name, 'Spieler Weiss');
+    const displayName = validatePlayerName(name, 'Spieler Weiss');
     const token = previousToken ?? this.ids();
     const match: Match = {
       id: this.ids(),
@@ -195,7 +197,7 @@ class InProcessGameService {
     name?: unknown,
   ): { token: string; match: MatchSnapshot } {
     this.expireWaiting();
-    const displayName = validateName(name, 'Spieler Schwarz');
+    const displayName = validatePlayerName(name, 'Spieler Schwarz');
     const waiting = this.matches.get(matchId);
     if (previousToken && waiting?.white === previousToken)
       throw new Error('Eigene Partie kann nicht beigetreten werden');
@@ -248,18 +250,23 @@ class InProcessGameService {
 
   /*** Atomically validate and freeze the entire owned coin selection at Ready. */
   private confirmChoices(match: Match, color: Color, value: unknown): void {
-    if (match.phase !== 'setup' || match.ready[color]) throw new Error('Choices are locked');
+    if (match.phase !== 'setup' || (color === 'w' ? match.ready.w : match.ready.b))
+      throw new Error('Choices are locked');
     const selected = validateCoinChoices(match.template, color, value);
-    if (color === 'w') match.choices.w = selected;
-    else match.choices.b = selected;
-    match.ready[color] = true;
+    if (color === 'w') {
+      match.choices.w = selected;
+      match.ready.w = true;
+    } else {
+      match.choices.b = selected;
+      match.ready.b = true;
+    }
     if (match.ready.w && match.ready.b) this.start(match);
   }
 
   /*** Rename only games currently owned by the authorized tab. */
   rename(token: string, proposedName: unknown): void {
     if (!this.sessions.has(token)) throw new Error('No active session');
-    const name = validateName(proposedName, 'Gast');
+    const name = validatePlayerName(proposedName, 'Gast');
     for (const id of this.sessions.get(token) ?? []) {
       const match = this.matches.get(id);
       if (!match) continue;
@@ -337,39 +344,3 @@ function opposite(color: Color): Color {
   return color === 'w' ? 'b' : 'w';
 }
 
-/*** Reject extra, missing, foreign, or out-of-range coin assignments. */
-function validateCoinChoices(
-  template: Template,
-  color: Color,
-  value: unknown,
-): Record<string, PieceKind> {
-  if (typeof value !== 'object' || value === null || Array.isArray(value))
-    throw new Error('Invalid coin choices');
-  const provided = value as Record<string, unknown>;
-  const required = template.cells.flatMap((row, y) =>
-    row.flatMap((cell, x) =>
-      cell?.kind === 'coin' && cell.color === color
-        ? [{ key: `${x}:${y}`, options: cell.options }]
-        : [],
-    ),
-  );
-  if (Object.keys(provided).length !== required.length) throw new Error('Incomplete coin choices');
-  return Object.fromEntries(
-    required.map(({ key, options }) => {
-      const kind = provided[key];
-      if (typeof kind !== 'string' || !options.includes(kind as PieceKind))
-        throw new Error('Choice not allowed');
-      return [key, kind as PieceKind];
-    }),
-  );
-}
-
-/*** Accept small, non-control-character player names only. */
-function validateName(value: unknown, fallback: string): string {
-  if (value === undefined) return fallback;
-  if (typeof value !== 'string') throw new Error('Invalid player name');
-  const name = value.trim();
-  if (!name || name.length > 32 || /[\x00-\x1f\x7f]/.test(name))
-    throw new Error('Invalid player name');
-  return name;
-}
