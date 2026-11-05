@@ -23,7 +23,11 @@ export function applyMatchAction(match: Match, color: Color, command: MatchActio
 }
 
 /*** Validate and execute a normal move; any move withdraws a pending draw offer. */
-function play(match: Match, color: Color, move: Extract<MatchAction, { action: 'move' }>['move']): void {
+function play(
+  match: Match,
+  color: Color,
+  move: Extract<MatchAction, { action: 'move' }>['move'],
+): void {
   if (match.phase !== 'playing' || match.state?.turn !== color) throw new Error('Not your turn');
   match.state = playMove(match.state, move);
   match.drawOffer = null;
@@ -33,8 +37,7 @@ function play(match: Match, color: Color, move: Extract<MatchAction, { action: '
 
 /*** Award the game to the opposing player upon voluntary resignation. */
 function resign(match: Match, color: Color): void {
-  if (match.phase !== 'playing' && match.phase !== 'setup')
-    throw new Error('Not an active match');
+  if (match.phase !== 'playing' && match.phase !== 'setup') throw new Error('Not an active match');
   match.result = { winner: color === 'w' ? 'b' : 'w', reason: 'resignation' };
   match.drawOffer = null;
   match.phase = 'finished';
