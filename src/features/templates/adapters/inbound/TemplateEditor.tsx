@@ -39,9 +39,12 @@ export function TemplateEditor({
   const nameRef = useRef<HTMLInputElement>(null);
   const { pieceSet, selectPieceSet } = usePieceSet();
 
-  const resize = useCallback((columns: number, ranks: number) => {
-    onUpdate(resizeTemplate(template, template.width + columns, template.height + ranks));
-  }, [onUpdate, template]);
+  const resize = useCallback(
+    (columns: number, ranks: number) => {
+      onUpdate(resizeTemplate(template, template.width + columns, template.height + ranks));
+    },
+    [onUpdate, template],
+  );
 
   const openSave = useCallback(() => {
     const saved = Number(window.localStorage.getItem(sequenceKey));
@@ -89,8 +92,11 @@ export function TemplateEditor({
     const keydown = (event: KeyboardEvent): void => {
       if (saving) return;
       const target = event.target;
-      if (target instanceof HTMLElement &&
-        (target.isContentEditable || ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName))) return;
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable || ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName))
+      )
+        return;
       const command = event.metaKey || event.ctrlKey;
       const key = event.key.toLowerCase();
       if (command && ['s', 't', 'f'].includes(key)) {
@@ -104,7 +110,9 @@ export function TemplateEditor({
       } else if (!command && !event.altKey && key === 'arrowright') {
         event.preventDefault();
         const index = PIECE_SETS.indexOf(pieceSet);
-        selectPieceSet(PIECE_SETS[(index + (event.shiftKey ? PIECE_SETS.length - 1 : 1)) % PIECE_SETS.length]!);
+        selectPieceSet(
+          PIECE_SETS[(index + (event.shiftKey ? PIECE_SETS.length - 1 : 1)) % PIECE_SETS.length]!,
+        );
       }
     };
     window.addEventListener('keydown', keydown);
@@ -142,11 +150,12 @@ export function TemplateEditor({
     setSaving(false);
   };
 
-  const turn = template.turn === 'random'
-    ? { icon: '🎲', next: 'w' as const, label: 'Zufällig – wechseln zu Weiss' }
-    : template.turn === 'w'
-      ? { icon: '⚪', next: 'b' as const, label: 'Weiss – wechseln zu Schwarz' }
-      : { icon: '⚫', next: 'random' as const, label: 'Schwarz – wechseln zu Zufall' };
+  const turn =
+    template.turn === 'random'
+      ? { icon: '🎲', next: 'w' as const, label: 'Zufällig – wechseln zu Weiss' }
+      : template.turn === 'w'
+        ? { icon: '⚪', next: 'b' as const, label: 'Weiss – wechseln zu Schwarz' }
+        : { icon: '⚫', next: 'random' as const, label: 'Schwarz – wechseln zu Zufall' };
 
   return (
     <section className="panel board-panel editor-board" aria-label="Brett konfigurieren">
@@ -165,7 +174,11 @@ export function TemplateEditor({
           }}
         >
           <option value="new">Eigenes Brett</option>
-          {templates.map((entry) => <option value={entry.id} key={entry.id}>{entry.name}</option>)}
+          {templates.map((entry) => (
+            <option value={entry.id} key={entry.id}>
+              {entry.name}
+            </option>
+          ))}
         </select>
       </div>
       <div className={`editor-interactive board-style-${style}`} {...gestures}>
@@ -179,8 +192,13 @@ export function TemplateEditor({
         />
       </div>
       <div className="editor-turn-row">
-        <button type="button" className="editor-turn" aria-label={turn.label}
-          title={turn.label} onClick={() => onUpdate({ ...template, turn: turn.next })}>
+        <button
+          type="button"
+          className="editor-turn"
+          aria-label={turn.label}
+          title={turn.label}
+          onClick={() => onUpdate({ ...template, turn: turn.next })}
+        >
           {turn.icon}
         </button>
       </div>
@@ -207,13 +225,22 @@ export function TemplateEditor({
                 }
               }}
             />
-            {templates.some((entry) => entry.id === template.id &&
-              !['standard', 'coins-10x13', 'endgame'].includes(entry.id)) ? (
-                <button type="button" className="editor-delete-template" onClick={() => {
+            {templates.some(
+              (entry) =>
+                entry.id === template.id &&
+                !['standard', 'coins-10x13', 'endgame'].includes(entry.id),
+            ) ? (
+              <button
+                type="button"
+                className="editor-delete-template"
+                onClick={() => {
                   onDelete(template.id);
                   setSaving(false);
-                }}>Vorlage löschen</button>
-              ) : null}
+                }}
+              >
+                Vorlage löschen
+              </button>
+            ) : null}
           </form>
         </div>
       ) : null}
