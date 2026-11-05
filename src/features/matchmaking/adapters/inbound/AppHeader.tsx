@@ -1,9 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-
 import { PieceSetSelect } from '../../../chess/adapters/inbound/PieceSetSelect.tsx';
-import { getPlayerName } from './getPlayerName.ts';
+import { PlayerNameEditor } from './PlayerNameEditor.tsx';
 import type { MatchSnapshot } from '../../application/createGameService.ts';
 
 interface Props {
@@ -15,22 +13,6 @@ interface Props {
 
 /*** Show the brand and authoritative matchmaking phase. */
 export function AppHeader({ match, error, clearError, onName }: Props) {
-  const [name, setName] = useState('Gast');
-  const [editing, setEditing] = useState(false);
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => setName(getPlayerName()));
-    return () => cancelAnimationFrame(frame);
-  }, []);
-  useEffect(() => {
-    if (!name.trim()) return;
-    const delay = setTimeout(() => onName(name.trim()), 600);
-    return () => clearTimeout(delay);
-  }, [name, onName]);
-  const changeName = (value: string): void => {
-    const next = value.slice(0, 32);
-    setName(next);
-    window.localStorage.setItem('chess-test-player-name', next);
-  };
   const status =
     match?.phase === 'waiting'
       ? 'Spielersuche'
@@ -54,32 +36,7 @@ export function AppHeader({ match, error, clearError, onName }: Props) {
           </div>
         </div>
         <div className="header-controls">
-          <div className="player-name">
-            {editing ? (
-              <input
-                aria-label="Spielername"
-                maxLength={32}
-                value={name}
-                onChange={(event) => changeName(event.target.value)}
-                onBlur={() => {
-                  if (!name.trim()) changeName('Gast');
-                  setEditing(false);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') event.currentTarget.blur();
-                }}
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={() => setEditing(true)}
-                aria-label={`Spielername bearbeiten: ${name}`}
-                title="Spielername bearbeiten"
-              >
-                {name} <span aria-hidden="true">✎</span>
-              </button>
-            )}
-          </div>
+          <PlayerNameEditor onName={onName} />
           <PieceSetSelect />
           <div className="header-status">
             <span className="status-light" />
