@@ -114,7 +114,8 @@ export function useEditorBoardGestures(actions: GestureActions) {
       if (twoFinger.current) {
         if (pointers.current.size === 0) {
           if (!moved.current) actions.onTemplates();
-          event.currentTarget.classList.remove('multi-touch');
+          const board = event.currentTarget;
+          requestAnimationFrame(() => board.classList.remove('multi-touch'));
           reset();
         }
         return;
