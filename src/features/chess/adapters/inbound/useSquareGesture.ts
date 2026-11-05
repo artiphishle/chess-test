@@ -13,6 +13,7 @@ export function useSquareGesture(
 ) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const consumed = useRef(false);
+  const origin = useRef<{ x: number; y: number } | null>(null);
   const cancel = (): void => {
     if (timer.current !== null) clearTimeout(timer.current);
     timer.current = null;
@@ -27,6 +28,7 @@ export function useSquareGesture(
     onPointerDown: (event: PointerEvent<HTMLButtonElement>) => {
       if (!onSquareLong || (event.pointerType === 'mouse' && event.button !== 0)) return;
       consumed.current = false;
+      origin.current = { x: event.clientX, y: event.clientY };
       cancel();
       const square = event.currentTarget;
       timer.current = setTimeout(() => {
@@ -34,23 +36,37 @@ export function useSquareGesture(
         if (!square.closest('.editor-interactive.multi-touch')) onSquareLong(position);
       }, 500);
     },
+    onPointerMove: (event: PointerEvent<HTMLButtonElement>) => {
+      if (!origin.current) return;
+      const moved = Math.hypot(event.clientX - origin.current.x, event.clientY - origin.current.y);
+      if (moved > 12) cancel();
+    },
     onPointerUp: cancel,
     onPointerCancel: cancel,
     onPointerLeave: cancel,
     onContextMenu: (event: MouseEvent<HTMLButtonElement>) => {
       if (onSquareLong) event.preventDefault();
     },
-    onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => {
-      if (event.shiftKey && event.key === 'Enter' && onSquareLong) {
-        event.preventDefault();
-        consumed.current = true;
-        onSquareLong(position);
-      }
-    },
+    onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) =>
+      handleLongPressKey(event, position, onSquareLong, consumed),
     onClick: (event: MouseEvent<HTMLButtonElement>) => {
       if (event.currentTarget.closest('.editor-interactive.multi-touch')) return;
       if (!consumed.current) onSquare(position);
       consumed.current = false;
     },
   };
+}
+
+/*** Allow an accessible long-press alternative without a pointer. */
+function handleLongPressKey(
+  event: KeyboardEvent<HTMLButtonElement>,
+  position: Position,
+  onSquareLong: ((position: Position) => void) | undefined,
+  consumed: { current: boolean },
+): void {
+  if (event.shiftKey && event.key === 'Enter' && onSquareLong) {
+    event.preventDefault();
+    consumed.current = true;
+    onSquareLong(position);
+  }
 }

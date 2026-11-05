@@ -1,36 +1,20 @@
-import type { Color, GameState, Move, PieceKind, Result, Template } from '../../../types/chess.ts';
+import type { Color, GameState, PieceKind, Template } from '../../../types/chess.ts';
+import type { FinishReason, Match, MatchAction, MatchPhase } from '../../../types/match.ts';
 import { createGameState } from '../../chess/domain/createGameState.ts';
-import { playMove } from '../../chess/domain/playMove.ts';
 import { readOutcome } from '../../chess/domain/readOutcome.ts';
 import { validateTemplate } from '../../templates/domain/validateTemplate.ts';
+import { applyMatchAction } from './applyMatchAction.ts';
 import { validateCoinChoices } from './validateCoinChoices.ts';
 import { validatePlayerName } from './validatePlayerName.ts';
 
-type Phase = 'waiting' | 'setup' | 'playing' | 'finished';
 type Command =
   | { action: 'create'; template: unknown }
   | { action: 'join'; matchId: string }
   | { action: 'ready'; choices: unknown }
-  | { action: 'move'; move: Move }
-  | { action: 'resign' }
+  | MatchAction
   | { action: 'rematch' }
   | { action: 'leave' };
-type FinishReason = Result | { winner: Color | null; reason: 'resignation' | 'departure' };
-interface Match {
-  id: string;
-  white: string;
-  black: string | null;
-  template: Template;
-  phase: Phase;
-  choices: Record<Color, Record<string, PieceKind>>;
-  ready: Record<Color, boolean>;
-  rematch: Record<Color, boolean>;
-  state: GameState | null;
-  result: FinishReason | null;
-  createdAt: number;
-  lastHostSeenAt: number;
-  players: { w: string; b: string | null };
-}
+
 export interface LobbyMatch {
   readonly id: string;
   readonly name: string;
@@ -44,7 +28,7 @@ export interface LobbyMatch {
 export interface MatchSnapshot {
   readonly id: string;
   readonly color: Color;
-  readonly phase: Phase;
+  readonly phase: MatchPhase;
   readonly template: Template;
   readonly choices: Readonly<Record<string, PieceKind>>;
   readonly ready: Readonly<Record<Color, boolean>>;
@@ -53,6 +37,8 @@ export interface MatchSnapshot {
   readonly players: Readonly<{ w: string; b: string | null }>;
   readonly state: GameState | null;
   readonly result: FinishReason | null;
+  readonly drawOffer: Color | null;
+  readonly cheatUsed: boolean;
 }
 
 /*** Create the single-process authoritative matchmaking and game service. */
@@ -130,6 +116,8 @@ class InProcessGameService {
       players: { ...match.players },
       state: match.state,
       result: match.result,
+      drawOffer: match.drawOffer,
+      cheatUsed: match.cheatUsed,
     };
   }
 
@@ -179,6 +167,8 @@ class InProcessGameService {
       rematch: { w: false, b: false },
       state: null,
       result: null,
+      drawOffer: null,
+      cheatUsed: false,
       createdAt: this.clock(),
       lastHostSeenAt: this.clock(),
       players: { w: displayName, b: null },
@@ -231,10 +221,10 @@ class InProcessGameService {
         this.confirmChoices(match, color, command.choices);
         break;
       case 'move':
-        this.move(match, color, command.move);
-        break;
       case 'resign':
-        this.resign(match, color);
+      case 'draw':
+      case 'cheat':
+        applyMatchAction(match, color, command);
         break;
       case 'rematch':
         this.rematch(match, color);
@@ -275,22 +265,6 @@ class InProcessGameService {
     }
   }
 
-  /*** Validate every requested move with the headless engine on the server. */
-  private move(match: Match, color: Color, move: Move): void {
-    if (match.phase !== 'playing' || match.state?.turn !== color) throw new Error('Not your turn');
-    match.state = playMove(match.state, move);
-    match.result = readOutcome(match.state);
-    if (match.result) match.phase = 'finished';
-  }
-
-  /*** End a game by voluntary resignation. */
-  private resign(match: Match, color: Color): void {
-    if (match.phase !== 'playing' && match.phase !== 'setup')
-      throw new Error('Not an active match');
-    match.result = { winner: color === 'w' ? 'b' : 'w', reason: 'resignation' };
-    match.phase = 'finished';
-  }
-
   /*** Create a rematch only when both connected players explicitly accept. */
   private rematch(match: Match, color: Color): void {
     if (match.phase !== 'finished' || !match.white || !match.black)
@@ -318,6 +292,8 @@ class InProcessGameService {
     match.ready = { w: false, b: false };
     match.rematch = { w: false, b: false };
     match.result = null;
+    match.drawOffer = null;
+    match.cheatUsed = false;
     match.state = null;
     match.phase = 'setup';
     for (const color of ['w', 'b'] as const) {

@@ -1,4 +1,5 @@
 import type { Cell, PieceKind } from '../../../types/chess.ts';
+import type { EditorMode } from '../../../types/editor.ts';
 
 const kinds: readonly PieceKind[] = ['P', 'N', 'B', 'R', 'Q', 'K'];
 const coinOptions: readonly (readonly PieceKind[])[] = [
@@ -8,23 +9,22 @@ const coinOptions: readonly (readonly PieceKind[])[] = [
   ['N', 'B', 'R', 'Q'],
 ];
 
-/*** Cycle piece kinds without changing the chosen owner; a hold alone changes the category. */
-export function cycleEditorCell(cell: Cell, gesture: 'tap' | 'hold'): Cell {
+/*** Place in the selected editor mode; short taps never change mode or piece color. */
+export function cycleEditorCell(cell: Cell, gesture: 'tap' | 'hold', mode: EditorMode): Cell {
   if (gesture === 'hold') {
-    if (!cell) return { color: 'b', kind: 'P' };
-    if (cell.kind === 'coin') return { color: 'w', kind: 'P' };
-    return cell.color === 'w'
-      ? { ...cell, color: 'b' }
-      : { color: 'b', kind: 'coin', options: coinOptions[0]! };
-  }
-  if (!cell) return { color: 'w', kind: 'P' };
-  if (cell.kind === 'coin') {
-    const index = coinOptions.findIndex((options) => options.join() === cell.options.join());
-    if (index === coinOptions.length - 1) {
-      return { ...cell, options: coinOptions[0]! };
+    if (mode === 'coin') {
+      return { color: cell?.color ?? 'b', kind: 'coin', options: coinOptions[0]! };
     }
-    return { ...cell, options: coinOptions[Math.max(0, index + 1)]! };
+    return { color: mode, kind: cell?.kind && cell.kind !== 'coin' ? cell.kind : 'P' };
   }
+  if (mode === 'coin') {
+    if (cell?.kind !== 'coin') {
+      return { color: cell?.color ?? 'b', kind: 'coin', options: coinOptions[0]! };
+    }
+    const index = coinOptions.findIndex((options) => options.join() === cell.options.join());
+    return { ...cell, options: coinOptions[(index + 1) % coinOptions.length]! };
+  }
+  if (!cell || cell.kind === 'coin' || cell.color !== mode) return { color: mode, kind: 'P' };
   const next = kinds.indexOf(cell.kind) + 1;
-  return next < kinds.length ? { ...cell, kind: kinds[next]! } : null;
+  return next < kinds.length ? { color: mode, kind: kinds[next]! } : null;
 }

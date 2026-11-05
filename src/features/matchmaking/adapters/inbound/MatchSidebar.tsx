@@ -10,16 +10,17 @@ import { WaitingSidebar } from './WaitingSidebar.tsx';
 interface Props {
   readonly session: MatchSession;
   readonly interaction: BoardInteraction;
+  readonly onResign: () => void;
 }
 
 /*** Route game phase presentation without giving it authority over state transitions. */
-export function MatchSidebar({ session, interaction }: Props) {
+export function MatchSidebar({ session, interaction, onResign }: Props) {
   const phase = session.match?.phase;
   return (
     <aside className="panel side-panel">
       {phase === 'waiting' ? <WaitingSidebar leave={session.leave} /> : null}
       {phase === 'setup' ? <SetupSidebar session={session} interaction={interaction} /> : null}
-      {phase === 'playing' ? <PlayingSidebar session={session} /> : null}
+      {phase === 'playing' ? <PlayingSidebar session={session} onResign={onResign} /> : null}
       {phase === 'finished' ? <FinishedSidebar session={session} /> : null}
     </aside>
   );

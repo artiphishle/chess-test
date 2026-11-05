@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 
 import type { Cell, Position, Template } from '../../../../types/chess.ts';
+import type { EditorMode } from '../../../../types/editor.ts';
 import { ChessBoard } from '../../../chess/adapters/inbound/ChessBoard.tsx';
 import { usePieceSet } from '../../../chess/adapters/inbound/usePieceSet.ts';
 import { PIECE_SETS } from '../../../chess/constants/pieceSets.ts';
 import { cycleEditorCell } from '../../domain/cycleEditorCell.ts';
 import { resizeTemplate } from '../../domain/resizeTemplate.ts';
+import { HiddenDoubleTapZone } from './HiddenDoubleTapZone.tsx';
 import { useEditorBoardGestures } from './useEditorBoardGestures.ts';
 
 interface Props {
@@ -32,10 +34,13 @@ export function TemplateEditor({
   onDelete,
 }: Props) {
   const [style, setStyle] = useState(0);
+  const [mode, setMode] = useState<EditorMode>('w');
   const [flipped, setFlipped] = useState(false);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
   const presetRef = useRef<HTMLSelectElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const wheelDelta = useRef(0);
   const nameRef = useRef<HTMLInputElement>(null);
   const { pieceSet, selectPieceSet } = usePieceSet();
 
@@ -45,6 +50,22 @@ export function TemplateEditor({
     },
     [onUpdate, template],
   );
+
+  useEffect(() => {
+    const node = boardRef.current;
+    if (!node) return;
+    const handleWheel = (event: WheelEvent): void => {
+      if (!event.ctrlKey) return;
+      event.preventDefault();
+      wheelDelta.current += -event.deltaY;
+      const steps = Math.trunc(wheelDelta.current / 45);
+      if (!steps) return;
+      wheelDelta.current -= steps * 45;
+      resize(steps, steps);
+    };
+    node.addEventListener('wheel', handleWheel, { passive: false });
+    return () => node.removeEventListener('wheel', handleWheel);
+  }, [resize]);
 
   const openSave = useCallback(() => {
     const saved = Number(window.localStorage.getItem(sequenceKey));
@@ -72,9 +93,6 @@ export function TemplateEditor({
 
   const gestures = useEditorBoardGestures({
     onResize: resize,
-    onBoardStyle: nextBoardStyle,
-    onPieceStyle: nextPieceStyle,
-    onFlip: () => setFlipped((value) => !value),
     onSave: openSave,
     onTemplates: openTemplates,
   });
@@ -99,7 +117,18 @@ export function TemplateEditor({
         return;
       const command = event.metaKey || event.ctrlKey;
       const key = event.key.toLowerCase();
-      if (command && ['s', 't', 'f'].includes(key)) {
+      if (
+        command &&
+        !event.altKey &&
+        !event.shiftKey &&
+        ['arrowleft', 'arrowright', 'arrowup', 'arrowdown'].includes(key)
+      ) {
+        event.preventDefault();
+        if (key === 'arrowleft') resize(-1, 0);
+        else if (key === 'arrowright') resize(1, 0);
+        else if (key === 'arrowup') resize(0, 1);
+        else resize(0, -1);
+      } else if (command && ['s', 't', 'f'].includes(key)) {
         event.preventDefault();
         if (key === 's') openSave();
         else if (key === 't') openTemplates();
@@ -117,14 +146,19 @@ export function TemplateEditor({
     };
     window.addEventListener('keydown', keydown);
     return () => window.removeEventListener('keydown', keydown);
-  }, [saving, openSave, openTemplates, pieceSet, selectPieceSet]);
+  }, [saving, openSave, openTemplates, pieceSet, resize, selectPieceSet]);
 
   const place = (position: Position, gesture: 'tap' | 'hold'): void => {
+    const nextMode: EditorMode =
+      gesture === 'hold' ? (mode === 'w' ? 'b' : mode === 'b' ? 'coin' : 'w') : mode;
+    if (gesture === 'hold') setMode(nextMode);
     onUpdate({
       ...template,
       cells: template.cells.map((row, y) =>
         y === position.y
-          ? row.map((cell, x) => (x === position.x ? cycleEditorCell(cell, gesture) : cell))
+          ? row.map((cell, x) =>
+              x === position.x ? cycleEditorCell(cell, gesture, nextMode) : cell,
+            )
           : row,
       ),
     });
@@ -181,7 +215,7 @@ export function TemplateEditor({
           ))}
         </select>
       </div>
-      <div className={`editor-interactive board-style-${style}`} {...gestures}>
+      <div ref={boardRef} className={`editor-interactive board-style-${style}`} {...gestures}>
         <ChessBoard
           cells={template.cells}
           width={template.width}
@@ -192,6 +226,10 @@ export function TemplateEditor({
         />
       </div>
       <div className="editor-turn-row">
+        <HiddenDoubleTapZone
+          label="Brettfarbe wechseln (doppelt tippen)"
+          onActivate={nextBoardStyle}
+        />
         <button
           type="button"
           className="editor-turn"
@@ -201,6 +239,10 @@ export function TemplateEditor({
         >
           {turn.icon}
         </button>
+        <HiddenDoubleTapZone
+          label="Figurenset wechseln (doppelt tippen)"
+          onActivate={nextPieceStyle}
+        />
       </div>
       {saving ? (
         <div className="modal-backdrop" role="presentation" onClick={() => setSaving(false)}>

@@ -9,20 +9,12 @@ interface Props {
   readonly error: string;
   readonly clearError: () => void;
   readonly onName: (name: string) => void;
+  readonly onCommands: () => void;
 }
 
 /*** Show the brand and authoritative matchmaking phase. */
-export function AppHeader({ match, error, clearError, onName }: Props) {
-  const status =
-    match?.phase === 'waiting'
-      ? 'Spielersuche'
-      : match?.phase === 'setup'
-        ? 'Vorbereitung'
-        : match?.phase === 'playing'
-          ? 'Live-Partie'
-          : match
-            ? 'Spiel beendet'
-            : 'Bereit zum Spielen';
+export function AppHeader({ match, error, clearError, onName, onCommands }: Props) {
+  const status = readHeaderStatus(match);
   return (
     <>
       <header className="app-header">
@@ -37,6 +29,15 @@ export function AppHeader({ match, error, clearError, onName }: Props) {
         </div>
         <div className="header-controls">
           <PlayerNameEditor onName={onName} />
+          <button
+            type="button"
+            className="command-trigger"
+            aria-label="Befehle öffnen"
+            title="Befehle (/)"
+            onClick={onCommands}
+          >
+            /
+          </button>
           <PieceSetSelect />
           <div className="header-status">
             <span className="status-light" />
@@ -54,4 +55,17 @@ export function AppHeader({ match, error, clearError, onName }: Props) {
       ) : null}
     </>
   );
+}
+
+/*** Read the visible phase label without mixing game state into the header tree. */
+function readHeaderStatus(match: MatchSnapshot | null): string {
+  return match?.phase === 'waiting'
+    ? 'Spielersuche'
+    : match?.phase === 'setup'
+      ? 'Vorbereitung'
+      : match?.phase === 'playing'
+        ? 'Live-Partie'
+        : match
+          ? 'Spiel beendet'
+          : 'Bereit zum Spielen';
 }
