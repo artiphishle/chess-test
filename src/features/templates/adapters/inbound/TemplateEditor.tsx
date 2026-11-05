@@ -117,8 +117,12 @@ export function TemplateEditor({
         return;
       const command = event.metaKey || event.ctrlKey;
       const key = event.key.toLowerCase();
-      if (command && !event.altKey && !event.shiftKey &&
-        ['arrowleft', 'arrowright', 'arrowup', 'arrowdown'].includes(key)) {
+      if (
+        command &&
+        !event.altKey &&
+        !event.shiftKey &&
+        ['arrowleft', 'arrowright', 'arrowup', 'arrowdown'].includes(key)
+      ) {
         event.preventDefault();
         if (key === 'arrowleft') resize(-1, 0);
         else if (key === 'arrowright') resize(1, 0);
@@ -145,15 +149,16 @@ export function TemplateEditor({
   }, [saving, openSave, openTemplates, pieceSet, resize, selectPieceSet]);
 
   const place = (position: Position, gesture: 'tap' | 'hold'): void => {
-    const nextMode: EditorMode = gesture === 'hold'
-      ? mode === 'w' ? 'b' : mode === 'b' ? 'coin' : 'w'
-      : mode;
+    const nextMode: EditorMode =
+      gesture === 'hold' ? (mode === 'w' ? 'b' : mode === 'b' ? 'coin' : 'w') : mode;
     if (gesture === 'hold') setMode(nextMode);
     onUpdate({
       ...template,
       cells: template.cells.map((row, y) =>
         y === position.y
-          ? row.map((cell, x) => (x === position.x ? cycleEditorCell(cell, gesture, nextMode) : cell))
+          ? row.map((cell, x) =>
+              x === position.x ? cycleEditorCell(cell, gesture, nextMode) : cell,
+            )
           : row,
       ),
     });
@@ -221,7 +226,10 @@ export function TemplateEditor({
         />
       </div>
       <div className="editor-turn-row">
-        <HiddenDoubleTapZone label="Brettfarbe wechseln (doppelt tippen)" onActivate={nextBoardStyle} />
+        <HiddenDoubleTapZone
+          label="Brettfarbe wechseln (doppelt tippen)"
+          onActivate={nextBoardStyle}
+        />
         <button
           type="button"
           className="editor-turn"
@@ -231,7 +239,10 @@ export function TemplateEditor({
         >
           {turn.icon}
         </button>
-        <HiddenDoubleTapZone label="Figurenset wechseln (doppelt tippen)" onActivate={nextPieceStyle} />
+        <HiddenDoubleTapZone
+          label="Figurenset wechseln (doppelt tippen)"
+          onActivate={nextPieceStyle}
+        />
       </div>
       {saving ? (
         <div className="modal-backdrop" role="presentation" onClick={() => setSaving(false)}>
