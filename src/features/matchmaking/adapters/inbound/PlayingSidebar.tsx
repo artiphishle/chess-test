@@ -23,7 +23,9 @@ export function PlayingSidebar({ session, onResign }: Props) {
       {match.drawOffer === match.color ? (
         <p className="muted">Remis angeboten – warte auf den Gegner.</p>
       ) : match.drawOffer ? (
-        <p className="hint-text">Dein Gegner bietet Remis. /draw oder beide Könige antippen akzeptiert.</p>
+        <p className="hint-text">
+          Dein Gegner bietet Remis. /draw oder beide Könige antippen akzeptiert.
+        </p>
       ) : null}
       <div className="match-info">
         <div>
@@ -35,7 +37,9 @@ export function PlayingSidebar({ session, onResign }: Props) {
           <strong>{match.state?.halfmove ?? 0}</strong>
         </div>
       </div>
-      <Button variant="outline" onPress={onResign}>Aufgeben</Button>
+      <Button variant="outline" onPress={onResign}>
+        Aufgeben
+      </Button>
     </>
   );
 }
