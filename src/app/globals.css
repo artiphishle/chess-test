@@ -852,24 +852,75 @@ footer span {
   --board-light: #d7e4da;
   --board-dark: #72938b;
 }
-.editor-interactive .square.light { background: var(--board-light); }
-.editor-interactive .square.dark { background: var(--board-dark); }
-.editor-interactive.board-style-1 { --board-light: #f0d9b5; --board-dark: #b58863; }
-.editor-interactive.board-style-2 { --board-light: #eeeed2; --board-dark: #769656; }
-.editor-interactive.board-style-3 { --board-light: #f5f5f5; --board-dark: #888e99; }
-.editor-interactive.board-style-4 { --board-light: #d9ebf3; --board-dark: #4d7791; }
-.editor-interactive.board-style-5 { --board-light: #e9d8d1; --board-dark: #956e78; }
-.editor-interactive.board-style-6 { --board-light: #fff1d6; --board-dark: #ae8556; }
-.editor-interactive.board-style-7 { --board-light: #dfdddd; --board-dark: #5e5e5e; }
-.editor-interactive.board-style-8 { --board-light: #d6e6e2; --board-dark: #397c83; }
-.editor-interactive.board-style-9 { --board-light: #f3e6ef; --board-dark: #a6759b; }
-.editor-interactive.board-style-10 { --board-light: #f5dfa3; --board-dark: #966f38; }
-.editor-interactive.board-style-11 { --board-light: #d3e4f0; --board-dark: #4974a2; }
-.editor-interactive.board-style-12 { --board-light: #e7e0ff; --board-dark: #665d9e; }
-.editor-interactive.board-style-13 { --board-light: #d6f0d0; --board-dark: #468e58; }
-.editor-interactive.board-style-14 { --board-light: #ffe3da; --board-dark: #a55947; }
-.editor-interactive.board-style-15 { --board-light: #c4d0d4; --board-dark: #36474f; }
-.editor-interactive.multi-touch .square { pointer-events: none; }
+.editor-interactive .square.light {
+  background: var(--board-light);
+}
+.editor-interactive .square.dark {
+  background: var(--board-dark);
+}
+.editor-interactive.board-style-1 {
+  --board-light: #f0d9b5;
+  --board-dark: #b58863;
+}
+.editor-interactive.board-style-2 {
+  --board-light: #eeeed2;
+  --board-dark: #769656;
+}
+.editor-interactive.board-style-3 {
+  --board-light: #f5f5f5;
+  --board-dark: #888e99;
+}
+.editor-interactive.board-style-4 {
+  --board-light: #d9ebf3;
+  --board-dark: #4d7791;
+}
+.editor-interactive.board-style-5 {
+  --board-light: #e9d8d1;
+  --board-dark: #956e78;
+}
+.editor-interactive.board-style-6 {
+  --board-light: #fff1d6;
+  --board-dark: #ae8556;
+}
+.editor-interactive.board-style-7 {
+  --board-light: #dfdddd;
+  --board-dark: #5e5e5e;
+}
+.editor-interactive.board-style-8 {
+  --board-light: #d6e6e2;
+  --board-dark: #397c83;
+}
+.editor-interactive.board-style-9 {
+  --board-light: #f3e6ef;
+  --board-dark: #a6759b;
+}
+.editor-interactive.board-style-10 {
+  --board-light: #f5dfa3;
+  --board-dark: #966f38;
+}
+.editor-interactive.board-style-11 {
+  --board-light: #d3e4f0;
+  --board-dark: #4974a2;
+}
+.editor-interactive.board-style-12 {
+  --board-light: #e7e0ff;
+  --board-dark: #665d9e;
+}
+.editor-interactive.board-style-13 {
+  --board-light: #d6f0d0;
+  --board-dark: #468e58;
+}
+.editor-interactive.board-style-14 {
+  --board-light: #ffe3da;
+  --board-dark: #a55947;
+}
+.editor-interactive.board-style-15 {
+  --board-light: #c4d0d4;
+  --board-dark: #36474f;
+}
+.editor-interactive.multi-touch .square {
+  pointer-events: none;
+}
 .editor-turn-row {
   display: flex;
   justify-content: center;
