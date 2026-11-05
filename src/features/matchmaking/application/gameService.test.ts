@@ -234,3 +234,55 @@ void test('server rejects invalid dimensions and coin values', () => {
   cells[12][1] = { kind: 'coin', color: 'w', options: ['N', 'Z' as 'N'] };
   assert.throws(() => validateTemplate({ ...wide, cells }), /Invalid board/);
 });
+
+void test('draw requires one offer from each participant and resets on a rematch', () => {
+  const service = sessions();
+  const offer = service.create('white', standard);
+  service.join('black', offer.match.id);
+  const offered = service.execute('white', offer.match.id, { action: 'draw' });
+  assert.equal(offered?.drawOffer, 'w');
+  assert.equal(offered?.phase, 'playing');
+  assert.equal(service.snapshot('black', offer.match.id)?.drawOffer, 'w');
+  const agreed = service.execute('black', offer.match.id, { action: 'draw' });
+  assert.equal(agreed?.phase, 'finished');
+  assert.deepEqual(agreed?.result, { winner: null, reason: 'agreement' });
+  assert.throws(() => service.execute('white', offer.match.id, { action: 'draw' }), /unavailable/);
+  service.execute('white', offer.match.id, { action: 'rematch' });
+  const again = service.execute('black', offer.match.id, { action: 'rematch' });
+  assert.equal(again?.drawOffer, null);
+  assert.equal(again?.cheatUsed, false);
+  assert.equal(again?.phase, 'playing');
+});
+
+void test('moving withdraws a pending draw; resignation remains server authorized', () => {
+  const service = sessions();
+  const offer = service.create('white', standard);
+  service.join('black', offer.match.id);
+  service.execute('white', offer.match.id, { action: 'draw' });
+  assert.equal(service.execute('white', offer.match.id, { action: 'draw' })?.drawOffer, null);
+  service.execute('white', offer.match.id, { action: 'draw' });
+  const moved = service.execute('white', offer.match.id, {
+    action: 'move', move: { from: { x: 4, y: 6 }, to: { x: 4, y: 4 } },
+  });
+  assert.equal(moved?.drawOffer, null);
+  assert.throws(() => service.execute('stranger', offer.match.id, { action: 'resign' }), /session/);
+  const resigned = service.execute('black', offer.match.id, { action: 'resign' });
+  assert.equal(resigned?.result?.winner, 'w');
+  assert.equal(resigned?.phase, 'finished');
+});
+
+void test('one cheat per match, either color, never across match identities', () => {
+  const service = sessions();
+  const first = service.create('white', standard);
+  const second = service.create('white', standard);
+  service.join('black', first.match.id);
+  service.join('guest', second.match.id);
+  assert.throws(() => service.execute('stranger', first.match.id, { action: 'cheat', notation: 'Qf4' }), /session/);
+  assert.throws(() => service.execute('white', first.match.id, { action: 'cheat', notation: 'Qz4' }), /Invalid/);
+  const cheated = service.execute('black', first.match.id, { action: 'cheat', notation: 'Qf4' });
+  assert.equal(cheated?.cheatUsed, true);
+  assert.equal(cheated?.state?.board[4]?.[5]?.color, 'b');
+  assert.equal(service.snapshot('white', first.match.id)?.state?.board[4]?.[5]?.kind, 'Q');
+  assert.throws(() => service.execute('white', first.match.id, { action: 'cheat', notation: 'Nf3' }), /already used/);
+  assert.equal(service.snapshot('white', second.match.id)?.cheatUsed, false);
+});
