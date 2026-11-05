@@ -61,3 +61,10 @@ export function MatchView({ session, interaction, onResign }: Props) {
     </section>
   );
 }
+
+const titles = {
+  waiting: 'Warte auf Gegner',
+  setup: 'Figuren wählen',
+  playing: 'Deine Partie',
+  finished: 'Partie beendet',
+} as const;
