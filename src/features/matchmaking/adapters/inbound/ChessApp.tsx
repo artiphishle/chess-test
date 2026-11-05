@@ -98,5 +98,9 @@ const theme = {
 
 /*** Keep the application footer independent from interaction wiring. */
 function AppFooter() {
-  return <footer>ANKHORAGE · CHESS TEST <span>Variable boards. Real chess rules.</span></footer>;
+  return (
+    <footer>
+      ANKHORAGE · CHESS TEST <span>Variable boards. Real chess rules.</span>
+    </footer>
+  );
 }
