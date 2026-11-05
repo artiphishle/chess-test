@@ -1032,5 +1032,8 @@ footer span {
   white-space: normal;
 }
 @media (max-width: 540px) {
-  .command-help dl > div { grid-template-columns: minmax(0, 1fr); gap: 3px; }
+  .command-help dl > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px;
+  }
 }
