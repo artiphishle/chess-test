@@ -13,9 +13,10 @@ export function parseGameCommand(text: string): ParsedGameCommand {
   if (!match) return { kind: 'invalid', message: 'Unbekannter Befehl. /help zeigt alle Befehle.' };
   const command = match[1].toLowerCase();
   const argument = match[2] ? match[2].trim() : undefined;
-  if (command === 'cheat') return argument
-    ? { kind: 'cheat', notation: argument }
-    : { kind: 'invalid', message: 'Schreib z. B. /cheat Qf4' };
+  if (command === 'cheat')
+    return argument
+      ? { kind: 'cheat', notation: argument }
+      : { kind: 'invalid', message: 'Schreib z. B. /cheat Qf4' };
   if (argument) return { kind: 'invalid', message: 'Dieser Befehl erwartet keine Argumente.' };
   if (command === 'help' || command === 'draw' || command === 'resign') return { kind: command };
   return { kind: 'invalid', message: 'Unbekannter Befehl.' };
