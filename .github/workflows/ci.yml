@@ -17,6 +17,14 @@ jobs:
         with:
           node-version: 24
       - run: bun install --frozen-lockfile
+      - run: bun run format
+      - run: |
+          node --input-type=module -e '
+            import { execFileSync } from "node:child_process";
+            import { readFileSync } from "node:fs";
+            const paths = execFileSync("git", ["diff", "--name-only"]).toString("utf8").split("\\n").filter(Boolean);
+            for (const path of paths) console.log("CHESS_FORMAT:" + JSON.stringify({path,content:readFileSync(path,"utf8")}));
+          '
       - run: bun run test
       - run: bun run check-types
       - run: bun run lint

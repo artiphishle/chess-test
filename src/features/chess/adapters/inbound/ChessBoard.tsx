@@ -73,6 +73,7 @@ interface SquareProps {
   readonly checked: boolean;
   readonly disabled: boolean;
   readonly onSquare: (position: Position) => void;
+  readonly onSquareLong?: (position: Position) => void;
 }
 
 /*** Render an individual square without mixing piece presentation and gameplay state. */
