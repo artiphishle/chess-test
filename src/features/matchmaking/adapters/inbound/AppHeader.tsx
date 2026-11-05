@@ -9,10 +9,11 @@ interface Props {
   readonly error: string;
   readonly clearError: () => void;
   readonly onName: (name: string) => void;
+  readonly onCommands: () => void;
 }
 
 /*** Show the brand and authoritative matchmaking phase. */
-export function AppHeader({ match, error, clearError, onName }: Props) {
+export function AppHeader({ match, error, clearError, onName, onCommands }: Props) {
   const status =
     match?.phase === 'waiting'
       ? 'Spielersuche'
@@ -37,6 +38,7 @@ export function AppHeader({ match, error, clearError, onName }: Props) {
         </div>
         <div className="header-controls">
           <PlayerNameEditor onName={onName} />
+          <button type="button" className="command-trigger" aria-label="Befehle öffnen" title="Befehle (/)" onClick={onCommands}>/</button>
           <PieceSetSelect />
           <div className="header-status">
             <span className="status-light" />
