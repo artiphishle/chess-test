@@ -338,4 +338,3 @@ class InProcessGameService {
     match.phase = match.result ? 'finished' : 'playing';
   }
 }
-

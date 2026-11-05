@@ -89,6 +89,13 @@ function Square({
   const active = selected?.x === position.x && selected.y === position.y;
   const presentation = getSquarePresentation({ cell, position, active, hinted, checked });
   const gesture = useSquareGesture(position, onSquare, onSquareLong);
+  const coinLabel = cell?.kind === 'coin'
+    ? cell.options.length <= 2
+      ? cell.options.join('')
+      : cell.options.length === 6
+        ? 'F'
+        : 'C'
+    : null;
   return (
     <button
       type="button"
@@ -100,7 +107,7 @@ function Square({
     >
       {cell?.kind === 'coin' ? (
         <span className="coin" title={cell.options.join('/')}>
-          C
+          {coinLabel}
         </span>
       ) : cell ? (
         <ChessPiece piece={cell} />
