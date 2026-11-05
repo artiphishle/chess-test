@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 
 import type { Cell, Position, Template } from '../../../../types/chess.ts';
+import type { EditorMode } from '../../../../types/editor.ts';
 import { ChessBoard } from '../../../chess/adapters/inbound/ChessBoard.tsx';
 import { usePieceSet } from '../../../chess/adapters/inbound/usePieceSet.ts';
 import { PIECE_SETS } from '../../../chess/constants/pieceSets.ts';
 import { cycleEditorCell } from '../../domain/cycleEditorCell.ts';
 import { resizeTemplate } from '../../domain/resizeTemplate.ts';
+import { HiddenDoubleTapZone } from './HiddenDoubleTapZone.tsx';
 import { useEditorBoardGestures } from './useEditorBoardGestures.ts';
 
 interface Props {
@@ -32,6 +34,7 @@ export function TemplateEditor({
   onDelete,
 }: Props) {
   const [style, setStyle] = useState(0);
+  const [mode, setMode] = useState<EditorMode>('w');
   const [flipped, setFlipped] = useState(false);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
@@ -90,9 +93,6 @@ export function TemplateEditor({
 
   const gestures = useEditorBoardGestures({
     onResize: resize,
-    onBoardStyle: nextBoardStyle,
-    onPieceStyle: nextPieceStyle,
-    onFlip: () => setFlipped((value) => !value),
     onSave: openSave,
     onTemplates: openTemplates,
   });
@@ -145,11 +145,15 @@ export function TemplateEditor({
   }, [saving, openSave, openTemplates, pieceSet, resize, selectPieceSet]);
 
   const place = (position: Position, gesture: 'tap' | 'hold'): void => {
+    const nextMode: EditorMode = gesture === 'hold'
+      ? mode === 'w' ? 'b' : mode === 'b' ? 'coin' : 'w'
+      : mode;
+    if (gesture === 'hold') setMode(nextMode);
     onUpdate({
       ...template,
       cells: template.cells.map((row, y) =>
         y === position.y
-          ? row.map((cell, x) => (x === position.x ? cycleEditorCell(cell, gesture) : cell))
+          ? row.map((cell, x) => (x === position.x ? cycleEditorCell(cell, gesture, nextMode) : cell))
           : row,
       ),
     });
@@ -217,6 +221,7 @@ export function TemplateEditor({
         />
       </div>
       <div className="editor-turn-row">
+        <HiddenDoubleTapZone label="Brettfarbe wechseln (doppelt tippen)" onActivate={nextBoardStyle} />
         <button
           type="button"
           className="editor-turn"
@@ -226,6 +231,7 @@ export function TemplateEditor({
         >
           {turn.icon}
         </button>
+        <HiddenDoubleTapZone label="Figurenset wechseln (doppelt tippen)" onActivate={nextPieceStyle} />
       </div>
       {saving ? (
         <div className="modal-backdrop" role="presentation" onClick={() => setSaving(false)}>
