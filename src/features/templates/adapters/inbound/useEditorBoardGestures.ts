@@ -119,7 +119,11 @@ export function useEditorBoardGestures(actions: GestureActions) {
         }
         return;
       }
-      if (pointer.pointerType === 'touch' && Math.abs(dx) > 65 && Math.abs(dx) > Math.abs(dy) * 1.35) {
+      if (
+        pointer.pointerType === 'touch' &&
+        Math.abs(dx) > 65 &&
+        Math.abs(dx) > Math.abs(dy) * 1.35
+      ) {
         if (dx < 0) actions.onBoardStyle();
         else actions.onPieceStyle();
       } else if (
