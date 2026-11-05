@@ -59,15 +59,13 @@ export function AppHeader({ match, error, clearError, onName, onCommands }: Prop
 
 /*** Read the visible phase label without mixing game state into the header tree. */
 function readHeaderStatus(match: MatchSnapshot | null): string {
-  return (
-    match?.phase === 'waiting'
-      ? 'Spielersuche'
-      : match?.phase === 'setup'
-        ? 'Vorbereitung'
-        : match?.phase === 'playing'
-          ? 'Live-Partie'
-          : match
-            ? 'Spiel beendet'
-            : 'Bereit zum Spielen'
-  );
+  return match?.phase === 'waiting'
+    ? 'Spielersuche'
+    : match?.phase === 'setup'
+      ? 'Vorbereitung'
+      : match?.phase === 'playing'
+        ? 'Live-Partie'
+        : match
+          ? 'Spiel beendet'
+          : 'Bereit zum Spielen';
 }
