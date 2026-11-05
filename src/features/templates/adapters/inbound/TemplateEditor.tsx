@@ -36,6 +36,8 @@ export function TemplateEditor({
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
   const presetRef = useRef<HTMLSelectElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const wheelDelta = useRef(0);
   const nameRef = useRef<HTMLInputElement>(null);
   const { pieceSet, selectPieceSet } = usePieceSet();
 
@@ -45,6 +47,22 @@ export function TemplateEditor({
     },
     [onUpdate, template],
   );
+
+  useEffect(() => {
+    const node = boardRef.current;
+    if (!node) return;
+    const handleWheel = (event: WheelEvent): void => {
+      if (!event.ctrlKey) return;
+      event.preventDefault();
+      wheelDelta.current += -event.deltaY;
+      const steps = Math.trunc(wheelDelta.current / 45);
+      if (!steps) return;
+      wheelDelta.current -= steps * 45;
+      resize(steps, steps);
+    };
+    node.addEventListener('wheel', handleWheel, { passive: false });
+    return () => node.removeEventListener('wheel', handleWheel);
+  }, [resize]);
 
   const openSave = useCallback(() => {
     const saved = Number(window.localStorage.getItem(sequenceKey));
@@ -99,7 +117,14 @@ export function TemplateEditor({
         return;
       const command = event.metaKey || event.ctrlKey;
       const key = event.key.toLowerCase();
-      if (command && ['s', 't', 'f'].includes(key)) {
+      if (command && !event.altKey && !event.shiftKey &&
+        ['arrowleft', 'arrowright', 'arrowup', 'arrowdown'].includes(key)) {
+        event.preventDefault();
+        if (key === 'arrowleft') resize(-1, 0);
+        else if (key === 'arrowright') resize(1, 0);
+        else if (key === 'arrowup') resize(0, 1);
+        else resize(0, -1);
+      } else if (command && ['s', 't', 'f'].includes(key)) {
         event.preventDefault();
         if (key === 's') openSave();
         else if (key === 't') openTemplates();
@@ -117,7 +142,7 @@ export function TemplateEditor({
     };
     window.addEventListener('keydown', keydown);
     return () => window.removeEventListener('keydown', keydown);
-  }, [saving, openSave, openTemplates, pieceSet, selectPieceSet]);
+  }, [saving, openSave, openTemplates, pieceSet, resize, selectPieceSet]);
 
   const place = (position: Position, gesture: 'tap' | 'hold'): void => {
     onUpdate({
@@ -181,7 +206,7 @@ export function TemplateEditor({
           ))}
         </select>
       </div>
-      <div className={`editor-interactive board-style-${style}`} {...gestures}>
+      <div ref={boardRef} className={`editor-interactive board-style-${style}`} {...gestures}>
         <ChessBoard
           cells={template.cells}
           width={template.width}
