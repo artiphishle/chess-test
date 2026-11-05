@@ -367,7 +367,7 @@ function validateName(value: unknown, fallback: string): string {
   if (value === undefined) return fallback;
   if (typeof value !== 'string') throw new Error('Invalid player name');
   const name = value.trim();
-  if (!name || name.length > 32 || /[\\x00-\\x1f\\x7f]/.test(name))
+  if (!name || name.length > 32 || /[\x00-\x1f\x7f]/.test(name))
     throw new Error('Invalid player name');
   return name;
 }

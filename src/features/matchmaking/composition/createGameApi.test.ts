@@ -221,3 +221,38 @@ void test('one tab owns three offers and receives multiple match tabs after sepa
   await post(guestOne, chromeTab1, { action: 'leave', matchId: ids[0] });
   await post(guestTwo, chromeTab1, { action: 'leave', matchId: ids[1] });
 });
+
+void test('HTTP names and per-player Ready choices remain scoped to their own tab', async () => {
+  const hostCookie = 'chess_session=fa000001-1111-4111-8111-111111111111';
+  const guestCookie = 'chess_session=fa000002-2222-4222-8222-222222222222';
+  const [, template] = createPresets();
+  const host = match(await post(hostCookie, chromeTab1, {
+    action: 'create', template, name: 'Host Name',
+  }));
+  assert.ok(host);
+  const guest = match(await post(guestCookie, safariTab, {
+    action: 'join', matchId: host.id, name: 'Guest Name',
+  }));
+  assert.ok(guest);
+  assert.deepEqual(guest.players, { w: 'Host Name', b: 'Guest Name' });
+  assert.equal((await post(guestCookie, safariTab, {
+    action: 'ready', matchId: host.id, choices: { '1:12': 'N' },
+  })).status, 409);
+  const columns = [1, 2, 3, 6, 7, 8];
+  const white = Object.fromEntries(columns.map((x) => [`${x}:12`, 'N']));
+  const black = Object.fromEntries(columns.map((x) => [`${x}:0`, 'B']));
+  assert.equal((await post(hostCookie, chromeTab1, {
+    action: 'ready', matchId: host.id, choices: white,
+  })).status, 200);
+  assert.deepEqual(games(await get(guestCookie, safariTab))[0]?.choices, {});
+  assert.equal((await post(guestCookie, safariTab, {
+    action: 'ready', matchId: host.id, choices: black,
+  })).status, 200);
+  assert.equal(games(await get(hostCookie, chromeTab1))[0]?.phase, 'playing');
+  assert.equal((await post(hostCookie, chromeTab1, {
+    action: 'rename', name: 'Renamed Host',
+  })).status, 200);
+  assert.equal(games(await get(guestCookie, safariTab))[0]?.players.w, 'Renamed Host');
+  await post(hostCookie, chromeTab1, { action: 'leave', matchId: host.id });
+  await post(guestCookie, safariTab, { action: 'leave', matchId: host.id });
+});
