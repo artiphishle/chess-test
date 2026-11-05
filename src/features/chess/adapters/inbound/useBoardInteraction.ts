@@ -12,57 +12,43 @@ export interface BoardInteraction {
   readonly cells: readonly (readonly Cell[])[];
   readonly selected: Position | null;
   readonly promotion: { from: Position; to: Position } | null;
-  readonly activeCoin: Position | null;
-  readonly cancelCoin: () => void;
+  readonly choices: Readonly<Record<string, PieceKind>>;
   readonly legal: readonly Move[];
   readonly onSquare: (position: Position) => void;
-  readonly choose: (kind: PieceKind) => void;
+  readonly confirmChoices: () => void;
   readonly promote: (kind: Move['promotion']) => void;
   readonly cancelPromotion: () => void;
 }
 
-/*** Hold transient board selection and delegate authorized commands to the server. */
+/*** Keep local coin cycles editable until one atomic server-side Ready command. */
 export function useBoardInteraction(session: MatchSession): BoardInteraction {
   const { match } = session;
   const [selected, setSelected] = useState<Position | null>(null);
   const [promotion, setPromotion] = useState<{ from: Position; to: Position } | null>(null);
-  const [activeCoin, setActiveCoin] = useState<Position | null>(null);
-  const cells = useMemo(() => visibleCells(match), [match]);
+  const [draft, setDraft] = useState<Readonly<Record<string, PieceKind>>>({});
+  const cells = useMemo(() => visibleCells(match, draft), [match, draft]);
   const legal = useMemo(() => {
     if (!match?.state || match.phase !== 'playing' || !selected) return [];
     if (match.state.turn !== match.color) return [];
     return getLegalMoves(match.state, selected);
   }, [match, selected]);
-  const actions = createBoardActions({
-    session,
-    selected,
-    setSelected,
-    promotion,
-    setPromotion,
-    activeCoin,
-    setActiveCoin,
-    legal,
-  });
-  return {
-    cells,
-    selected,
-    promotion,
-    activeCoin,
-    legal,
-    ...actions,
-    cancelCoin: () => setActiveCoin(null),
-    cancelPromotion: () => setPromotion(null),
-  };
+  const actions = createBoardActions({ session, selected, setSelected, promotion, setPromotion, draft, setDraft, legal });
+  return { cells, selected, promotion, choices: match?.ready[match.color] ? match.choices : draft,
+    legal, ...actions, cancelPromotion: () => setPromotion(null) };
 }
 
-/*** Show only the current player's resolved pre-game choices. */
-function visibleCells(match: MatchSnapshot | null): readonly (readonly Cell[])[] {
+/*** Replace only the local player's coins with privately previewed choices. */
+function visibleCells(
+  match: MatchSnapshot | null,
+  draft: Readonly<Record<string, PieceKind>>,
+): readonly (readonly Cell[])[] {
   if (!match) return [];
   if (match.state) return match.state.board;
+  const choices = match.ready[match.color] ? match.choices : draft;
   return match.template.cells.map((row, y) =>
     row.map((cell, x): Cell => {
       if (cell?.kind !== 'coin' || cell.color !== match.color) return cell;
-      const kind = Object.entries(match.choices).find(([key]) => key === `${x}:${y}`)?.[1];
+      const kind = choices[`${x}:${y}`];
       return kind ? { kind, color: cell.color } : cell;
     }),
   );

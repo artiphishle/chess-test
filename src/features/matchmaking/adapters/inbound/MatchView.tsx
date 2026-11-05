@@ -42,7 +42,7 @@ export function MatchView({ session, interaction }: Props) {
           onSquare={interaction.onSquare}
         />
         <div className="board-footer">
-          <span>Du spielst {match.color === 'w' ? 'Weiss ♔' : 'Schwarz ♚'}</span>
+          <span>{match.players[match.color] || 'Gast'} · Du spielst {match.color === 'w' ? 'Weiss ♔' : 'Schwarz ♚'}</span>
           <span>
             {match.phase === 'playing'
               ? `${match.state?.turn === 'w' ? 'Weiss' : 'Schwarz'} am Zug`
@@ -50,7 +50,7 @@ export function MatchView({ session, interaction }: Props) {
           </span>
         </div>
       </div>
-      <MatchSidebar session={session} />
+      <MatchSidebar session={session} interaction={interaction} />
     </section>
   );
 }

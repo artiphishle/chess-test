@@ -1,12 +1,15 @@
 'use client';
 
+import { useCallback } from 'react';
+
 import { ZoraProvider } from '@ankhorage/zora/web/runtime';
 
 import { PieceSetProvider } from '../../../chess/adapters/inbound/PieceSetProvider.tsx';
 import { useBoardInteraction } from '../../../chess/adapters/inbound/useBoardInteraction.ts';
 import { useTemplateLibrary } from '../../../templates/adapters/inbound/useTemplateLibrary.ts';
-import { ActiveCoinChoice } from './ActiveCoinChoice.tsx';
 import { AppHeader } from './AppHeader.tsx';
+import { getPlayerName } from './getPlayerName.ts';
+import { sendGameCommandAsync } from './sendGameCommandAsync.ts';
 import { LobbyView } from './LobbyView.tsx';
 import { MatchTabs } from './MatchTabs.tsx';
 import { MatchView } from './MatchView.tsx';
@@ -17,11 +20,14 @@ import { useMatchSession } from './useMatchSession.ts';
 export function ChessApp() {
   const session = useMatchSession();
   const library = useTemplateLibrary();
+  const rename = useCallback((name: string) => {
+    void sendGameCommandAsync({ action: 'rename', name }).catch(() => undefined);
+  }, []);
   return (
     <ZoraProvider theme={theme} initialMode="dark">
       <PieceSetProvider>
         <main className="app-shell">
-          <AppHeader match={session.match} error={session.error} clearError={session.clearError} />
+          <AppHeader match={session.match} error={session.error} clearError={session.clearError} onName={rename} />
           <div className="page-content">
             <MatchTabs
               matches={session.matches}
@@ -40,10 +46,10 @@ export function ChessApp() {
                   void session.act({ action: 'leave', matchId });
                 }}
                 onPlay={() => {
-                  void session.act({ action: 'create', template: library.template });
+                  void session.act({ action: 'create', template: library.template, name: getPlayerName() });
                 }}
                 onJoin={(matchId) => {
-                  void session.act({ action: 'join', matchId });
+                  void session.act({ action: 'join', matchId, name: getPlayerName() });
                 }}
               />
             )}
@@ -65,9 +71,6 @@ function ActiveMatchContent({ session }: { readonly session: ReturnType<typeof u
   return (
     <>
       <MatchView session={session} interaction={interaction} />
-      {match.phase === 'setup' ? (
-        <ActiveCoinChoice match={match} interaction={interaction} busy={session.busy} />
-      ) : null}
       <PromotionDialog interaction={interaction} />
     </>
   );
