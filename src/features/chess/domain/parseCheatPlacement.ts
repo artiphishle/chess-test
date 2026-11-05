@@ -5,7 +5,7 @@ export function parseCheatPlacement(notation: unknown, width: number, height: nu
   if (typeof notation !== 'string' || notation.length > 12) throw new Error('Invalid cheat SAN');
   const san = /^([KQRBN])?(?:[a-x1-9])?x?([a-x])(2[0-4]|1[0-9]|[1-9])[+#]?$/.exec(notation.trim());
   if (!san) throw new Error('Invalid cheat SAN');
-  const symbol = san[1];
+  const [, symbol] = san;
   const kind: PieceKind =
     symbol === 'K'
       ? 'K'
