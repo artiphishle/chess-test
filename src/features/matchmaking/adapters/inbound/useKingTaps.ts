@@ -12,7 +12,7 @@ interface Actions {
   readonly onSquare: (position: Position) => void;
 }
 
-type Sequence = { color: Color | null; own: number; at: number };
+interface Sequence { readonly color: Color | null; readonly own: number; readonly at: number }
 
 /*** Recognize both-king draw offers and four own-king resignation requests. */
 export function useKingTaps({ state, color, onDraw, onResign, onSquare }: Actions) {
