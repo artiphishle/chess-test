@@ -7,8 +7,17 @@ export function parseCheatPlacement(notation: unknown, width: number, height: nu
   if (!san) throw new Error('Invalid cheat SAN');
   const symbol = san[1];
   const kind: PieceKind =
-    symbol === 'K' ? 'K' : symbol === 'Q' ? 'Q' : symbol === 'R' ? 'R' :
-    symbol === 'B' ? 'B' : symbol === 'N' ? 'N' : 'P';
+    symbol === 'K'
+      ? 'K'
+      : symbol === 'Q'
+        ? 'Q'
+        : symbol === 'R'
+          ? 'R'
+          : symbol === 'B'
+            ? 'B'
+            : symbol === 'N'
+              ? 'N'
+              : 'P';
   const x = san[2].charCodeAt(0) - 97;
   const y = height - Number(san[3]);
   if (x >= width || y < 0 || y >= height) throw new Error('Cheat square outside board');
