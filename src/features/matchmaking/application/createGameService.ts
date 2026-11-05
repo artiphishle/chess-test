@@ -1,4 +1,5 @@
 import type { Color, GameState, Move, PieceKind, Result, Template } from '../../../types/chess.ts';
+import { applyCheat } from '../../chess/domain/applyCheat.ts';
 import { createGameState } from '../../chess/domain/createGameState.ts';
 import { playMove } from '../../chess/domain/playMove.ts';
 import { readOutcome } from '../../chess/domain/readOutcome.ts';
@@ -13,9 +14,11 @@ type Command =
   | { action: 'ready'; choices: unknown }
   | { action: 'move'; move: Move }
   | { action: 'resign' }
+  | { action: 'draw' }
+  | { action: 'cheat'; notation: unknown }
   | { action: 'rematch' }
   | { action: 'leave' };
-type FinishReason = Result | { winner: Color | null; reason: 'resignation' | 'departure' };
+type FinishReason = Result | { winner: Color | null; reason: 'resignation' | 'departure' | 'agreement' };
 interface Match {
   id: string;
   white: string;
@@ -27,6 +30,8 @@ interface Match {
   rematch: Record<Color, boolean>;
   state: GameState | null;
   result: FinishReason | null;
+  drawOffer: Color | null;
+  cheatUsed: boolean;
   createdAt: number;
   lastHostSeenAt: number;
   players: { w: string; b: string | null };
@@ -53,6 +58,8 @@ export interface MatchSnapshot {
   readonly players: Readonly<{ w: string; b: string | null }>;
   readonly state: GameState | null;
   readonly result: FinishReason | null;
+  readonly drawOffer: Color | null;
+  readonly cheatUsed: boolean;
 }
 
 /*** Create the single-process authoritative matchmaking and game service. */
@@ -130,6 +137,8 @@ class InProcessGameService {
       players: { ...match.players },
       state: match.state,
       result: match.result,
+      drawOffer: match.drawOffer,
+      cheatUsed: match.cheatUsed,
     };
   }
 
@@ -179,6 +188,8 @@ class InProcessGameService {
       rematch: { w: false, b: false },
       state: null,
       result: null,
+      drawOffer: null,
+      cheatUsed: false,
       createdAt: this.clock(),
       lastHostSeenAt: this.clock(),
       players: { w: displayName, b: null },
@@ -236,6 +247,12 @@ class InProcessGameService {
       case 'resign':
         this.resign(match, color);
         break;
+      case 'draw':
+        this.draw(match, color);
+        break;
+      case 'cheat':
+        this.cheat(match, color, command.notation);
+        break;
       case 'rematch':
         this.rematch(match, color);
         break;
@@ -279,6 +296,7 @@ class InProcessGameService {
   private move(match: Match, color: Color, move: Move): void {
     if (match.phase !== 'playing' || match.state?.turn !== color) throw new Error('Not your turn');
     match.state = playMove(match.state, move);
+    match.drawOffer = null;
     match.result = readOutcome(match.state);
     if (match.result) match.phase = 'finished';
   }
@@ -288,7 +306,33 @@ class InProcessGameService {
     if (match.phase !== 'playing' && match.phase !== 'setup')
       throw new Error('Not an active match');
     match.result = { winner: color === 'w' ? 'b' : 'w', reason: 'resignation' };
+    match.drawOffer = null;
     match.phase = 'finished';
+  }
+
+  /*** Offer or accept a draw without silently resolving a one-sided request. */
+  private draw(match: Match, color: Color): void {
+    if (match.phase !== 'playing') throw new Error('Draw unavailable');
+    const opponent: Color = color === 'w' ? 'b' : 'w';
+    if (match.drawOffer === opponent) {
+      match.result = { winner: null, reason: 'agreement' };
+      match.phase = 'finished';
+      match.drawOffer = null;
+      return;
+    }
+    match.drawOffer = match.drawOffer === color ? null : color;
+  }
+
+  /*** Allow exactly one special piece placement per match from either authorized player. */
+  private cheat(match: Match, color: Color, notation: unknown): void {
+    if (match.phase !== 'playing' || !match.state) throw new Error('Cheat unavailable');
+    if (match.cheatUsed) throw new Error('Cheat already used in this match');
+    const next = applyCheat(match.state, color, notation);
+    match.state = next;
+    match.cheatUsed = true;
+    match.drawOffer = null;
+    match.result = readOutcome(next);
+    if (match.result) match.phase = 'finished';
   }
 
   /*** Create a rematch only when both connected players explicitly accept. */
@@ -318,6 +362,8 @@ class InProcessGameService {
     match.ready = { w: false, b: false };
     match.rematch = { w: false, b: false };
     match.result = null;
+    match.drawOffer = null;
+    match.cheatUsed = false;
     match.state = null;
     match.phase = 'setup';
     for (const color of ['w', 'b'] as const) {
