@@ -21,7 +21,7 @@ export function ConfirmResignDialog({ onCancel, onConfirm, busy }: Props) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [busy, onCancel, onConfirm]);
   return (
-    <div className="modal-backdrop" onMouseDown={(event) => {
+    <div className="modal-backdrop" onPointerDown={(event) => {
       if (event.currentTarget === event.target) onCancel();
     }}>
       <section className="result-modal" role="dialog" aria-modal="true"
