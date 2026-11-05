@@ -49,11 +49,8 @@ export function useSquareGesture(
     },
     onClick: (event: MouseEvent<HTMLButtonElement>) => {
       if (event.currentTarget.closest('.editor-interactive.multi-touch')) return;
-      if (consumed.current) {
-        consumed.current = false;
-        return;
-      }
-      onSquare(position);
+      if (!consumed.current) onSquare(position);
+      consumed.current = false;
     },
   };
 }
