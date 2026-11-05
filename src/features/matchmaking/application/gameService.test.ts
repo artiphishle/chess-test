@@ -263,7 +263,8 @@ void test('moving withdraws a pending draw; resignation remains server authorize
   assert.equal(service.execute('white', offer.match.id, { action: 'draw' })?.drawOffer, null);
   service.execute('white', offer.match.id, { action: 'draw' });
   const moved = service.execute('white', offer.match.id, {
-    action: 'move', move: { from: { x: 4, y: 6 }, to: { x: 4, y: 4 } },
+    action: 'move',
+    move: { from: { x: 4, y: 6 }, to: { x: 4, y: 4 } },
   });
   assert.equal(moved?.drawOffer, null);
   assert.throws(() => service.execute('stranger', offer.match.id, { action: 'resign' }), /session/);
@@ -278,12 +279,21 @@ void test('one cheat per match, either color, never across match identities', ()
   const second = service.create('white', standard);
   service.join('black', first.match.id);
   service.join('guest', second.match.id);
-  assert.throws(() => service.execute('stranger', first.match.id, { action: 'cheat', notation: 'Qf4' }), /session/);
-  assert.throws(() => service.execute('white', first.match.id, { action: 'cheat', notation: 'Qz4' }), /Invalid/);
+  assert.throws(
+    () => service.execute('stranger', first.match.id, { action: 'cheat', notation: 'Qf4' }),
+    /session/,
+  );
+  assert.throws(
+    () => service.execute('white', first.match.id, { action: 'cheat', notation: 'Qz4' }),
+    /Invalid/,
+  );
   const cheated = service.execute('black', first.match.id, { action: 'cheat', notation: 'Qf4' });
   assert.equal(cheated?.cheatUsed, true);
   assert.equal(cheated.state?.board[4]?.[5]?.color, 'b');
   assert.equal(service.snapshot('white', first.match.id)?.state?.board[4]?.[5]?.kind, 'Q');
-  assert.throws(() => service.execute('white', first.match.id, { action: 'cheat', notation: 'Nf3' }), /already used/);
+  assert.throws(
+    () => service.execute('white', first.match.id, { action: 'cheat', notation: 'Nf3' }),
+    /already used/,
+  );
   assert.equal(service.snapshot('white', second.match.id)?.cheatUsed, false);
 });
