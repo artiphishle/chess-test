@@ -92,7 +92,8 @@ export function useEditorBoardGestures(actions: GestureActions) {
         event.clientY > rect.bottom &&
         dy > rect.height * 0.3 &&
         Math.abs(dx) < rect.width * 0.2
-      ) actions.onSave();
+      )
+        actions.onSave();
       if (!pointers.current.size) reset();
     },
     onPointerCancel: (event: PointerEvent<HTMLDivElement>): void => {
