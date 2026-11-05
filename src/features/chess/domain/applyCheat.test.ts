@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createPresets } from '../../templates/domain/createPresets.ts';
-import { createGameState } from './createGameState.ts';
 import { applyCheat } from './applyCheat.ts';
+import { createGameState } from './createGameState.ts';
 
-const state = createGameState(createPresets()[0]!, { w: {}, b: {} });
+const state = createGameState(createPresets()[0], { w: {}, b: {} });
 
 void test('SAN-like cheat places a queen without changing the turn', () => {
   const next = applyCheat(state, 'w', 'Qf4');
