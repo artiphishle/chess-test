@@ -24,7 +24,7 @@ export function CommandOverlay({ onClose, onSubmit }: Props) {
     if (result === 'close') onClose();
   };
   return (
-    <div className="modal-backdrop" onMouseDown={(event) => {
+    <div className="modal-backdrop" onPointerDown={(event) => {
       if (event.target === event.currentTarget) onClose();
     }}>
       <form className="command-overlay" role="dialog" aria-modal="true"
