@@ -13,7 +13,9 @@
   --accent-contrast: #ffffff;
   background: radial-gradient(ellipse at 20% -6%, var(--glow), transparent 42%), var(--bg);
   color: var(--text);
-  transition: background-color 180ms ease, color 180ms ease;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
 }
 .app-shell[data-brand-theme='ruby'] {
   --bg: #160d15;
