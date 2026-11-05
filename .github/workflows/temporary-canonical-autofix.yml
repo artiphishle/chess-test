@@ -1,0 +1,28 @@
+name: Temporary canonical autofix
+on:
+  push:
+    branches: [feat/game-commands-15]
+permissions:
+  contents: write
+jobs:
+  format:
+    if: github.event.head_commit.message == 'chore(ci): apply canonical autofix'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - name: Canonical autofix
+        run: |
+          bun run format
+          bun run lint --fix || true
+          bun run format
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .
+          if ! git diff --cached --quiet; then
+            git commit -m "style(game): apply canonical formatting"
+            git push origin HEAD:feat/game-commands-15
+          fi
