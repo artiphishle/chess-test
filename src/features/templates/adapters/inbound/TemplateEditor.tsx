@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 
 import type { Cell, Position, Template } from '../../../../types/chess.ts';
+import { useBoardTheme } from '../../../branding/adapters/inbound/useBoardTheme.ts';
 import type { EditorMode } from '../../../../types/editor.ts';
 import { ChessBoard } from '../../../chess/adapters/inbound/ChessBoard.tsx';
 import { usePieceSet } from '../../../chess/adapters/inbound/usePieceSet.ts';
@@ -21,7 +22,6 @@ interface Props {
   readonly onDelete: (id: string) => void;
 }
 
-const styleCount = 16;
 const sequenceKey = 'chess-test-template-sequence';
 
 /*** Edit the board directly using gestures and keyboard shortcuts without secondary controls. */
@@ -33,7 +33,7 @@ export function TemplateEditor({
   onSave,
   onDelete,
 }: Props) {
-  const [style, setStyle] = useState(0);
+  const { cycleTheme } = useBoardTheme();
   const [mode, setMode] = useState<EditorMode>('w');
   const [flipped, setFlipped] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -85,7 +85,7 @@ export function TemplateEditor({
     }
   }, []);
 
-  const nextBoardStyle = useCallback(() => setStyle((value) => (value + 1) % styleCount), []);
+  const nextBoardStyle = useCallback(() => cycleTheme(1), [cycleTheme]);
   const nextPieceStyle = useCallback(() => {
     const index = PIECE_SETS.indexOf(pieceSet);
     selectPieceSet(PIECE_SETS[(index + 1) % PIECE_SETS.length]!);
@@ -135,7 +135,7 @@ export function TemplateEditor({
         else setFlipped((value) => !value);
       } else if (!command && !event.altKey && key === 'arrowleft') {
         event.preventDefault();
-        setStyle((value) => (value + (event.shiftKey ? styleCount - 1 : 1)) % styleCount);
+        cycleTheme(event.shiftKey ? -1 : 1);
       } else if (!command && !event.altKey && key === 'arrowright') {
         event.preventDefault();
         const index = PIECE_SETS.indexOf(pieceSet);
@@ -146,7 +146,7 @@ export function TemplateEditor({
     };
     window.addEventListener('keydown', keydown);
     return () => window.removeEventListener('keydown', keydown);
-  }, [saving, openSave, openTemplates, pieceSet, resize, selectPieceSet]);
+  }, [cycleTheme, saving, openSave, openTemplates, pieceSet, resize, selectPieceSet]);
 
   const place = (position: Position, gesture: 'tap' | 'hold'): void => {
     const nextMode: EditorMode =
@@ -215,7 +215,7 @@ export function TemplateEditor({
           ))}
         </select>
       </div>
-      <div ref={boardRef} className={`editor-interactive board-style-${style}`} {...gestures}>
+      <div ref={boardRef} className="editor-interactive" {...gestures}>
         <ChessBoard
           cells={template.cells}
           width={template.width}
@@ -227,7 +227,7 @@ export function TemplateEditor({
       </div>
       <div className="editor-turn-row">
         <HiddenDoubleTapZone
-          label="Brettfarbe wechseln (doppelt tippen)"
+          label="Design und Logo wechseln (doppelt tippen)"
           onActivate={nextBoardStyle}
         />
         <button
