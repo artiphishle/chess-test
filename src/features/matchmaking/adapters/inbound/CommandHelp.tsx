@@ -41,7 +41,9 @@ export function CommandHelp() {
       <dl>
         {[...shared, ...(device === 'touch' ? touch : desktop)].map(([command, meaning]) => (
           <div key={command}>
-            <dt><code>{command}</code></dt>
+            <dt>
+              <code>{command}</code>
+            </dt>
             <dd>{meaning}</dd>
           </div>
         ))}
