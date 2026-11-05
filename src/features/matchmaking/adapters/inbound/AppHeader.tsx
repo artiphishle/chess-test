@@ -14,16 +14,7 @@ interface Props {
 
 /*** Show the brand and authoritative matchmaking phase. */
 export function AppHeader({ match, error, clearError, onName, onCommands }: Props) {
-  const status =
-    match?.phase === 'waiting'
-      ? 'Spielersuche'
-      : match?.phase === 'setup'
-        ? 'Vorbereitung'
-        : match?.phase === 'playing'
-          ? 'Live-Partie'
-          : match
-            ? 'Spiel beendet'
-            : 'Bereit zum Spielen';
+  const status = readHeaderStatus(match);
   return (
     <>
       <header className="app-header">
@@ -64,4 +55,18 @@ export function AppHeader({ match, error, clearError, onName, onCommands }: Prop
       ) : null}
     </>
   );
+}
+
+/*** Read the visible phase label without mixing game state into the header tree. */
+function readHeaderStatus(match: MatchSnapshot | null): string {
+  return
+    match?.phase === 'waiting'
+      ? 'Spielersuche'
+      : match?.phase === 'setup'
+        ? 'Vorbereitung'
+        : match?.phase === 'playing'
+          ? 'Live-Partie'
+          : match
+            ? 'Spiel beendet'
+            : 'Bereit zum Spielen';
 }
