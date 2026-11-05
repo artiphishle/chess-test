@@ -4,10 +4,12 @@ import type { Color, GameState, Move, PieceKind, Result, Template } from './ches
 export type MatchPhase = 'waiting' | 'setup' | 'playing' | 'finished';
 
 /*** Terminal game reason, including negotiated and voluntary outcomes. */
-export type FinishReason = Result | {
-  winner: Color | null;
-  reason: 'resignation' | 'departure' | 'agreement';
-};
+export type FinishReason =
+  | Result
+  | {
+      winner: Color | null;
+      reason: 'resignation' | 'departure' | 'agreement';
+    };
 
 /*** All commands that mutate a live match but not its membership or coin setup. */
 export type MatchAction =
