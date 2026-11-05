@@ -87,8 +87,9 @@ void test('each Ready locks only the acting player and starts once both are read
   const done = service.execute('black', offer.match.id, { action: 'ready', choices: black });
   assert.ok(done);
   assert.equal(done.phase, 'playing');
-  assert.equal(done.state?.board[12]?.[1]?.kind, 'N');
-  assert.equal(done.state?.board[0]?.[1]?.kind, 'B');
+  assert.ok(done.state);
+  assert.equal(done.state.board[12][1]?.kind, 'N');
+  assert.equal(done.state.board[0][1]?.kind, 'B');
   assert.equal(done.template.cells[12]?.[1]?.kind, 'coin');
 });
 
@@ -114,8 +115,9 @@ void test('free coins permit any piece and reject foreign coordinates', () => {
     choices: { '1:0': 'Q' },
   });
   assert.ok(done);
-  assert.equal(done.state?.board[7]?.[1]?.kind, 'R');
-  assert.equal(done.state?.board[0]?.[1]?.kind, 'Q');
+  assert.ok(done.state);
+  assert.equal(done.state.board[7][1]?.kind, 'R');
+  assert.equal(done.state.board[0][1]?.kind, 'Q');
 });
 
 void test('normal turns remain server-authoritative and replays reset choices', () => {

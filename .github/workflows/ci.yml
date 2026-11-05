@@ -17,6 +17,7 @@ jobs:
         with:
           node-version: 24
       - run: bun install --frozen-lockfile
+      - run: bun run lint --fix || true
       - run: bun run format
       - run: |
           node --input-type=module -e '

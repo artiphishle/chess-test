@@ -265,13 +265,13 @@ class InProcessGameService {
 
   /*** Rename only games currently owned by the authorized tab. */
   rename(token: string, proposedName: unknown): void {
-    if (!this.sessions.has(token)) throw new Error('No active session');
+    const joined = this.sessions.get(token);
+    if (!joined) throw new Error('No active session');
     const name = validatePlayerName(proposedName, 'Gast');
-    for (const id of this.sessions.get(token) ?? []) {
+    for (const id of joined) {
       const match = this.matches.get(id);
-      if (!match) continue;
-      if (match.white === token) match.players.w = name;
-      if (match.black === token) match.players.b = name;
+      if (match?.white === token) match.players.w = name;
+      if (match?.black === token) match.players.b = name;
     }
   }
 
