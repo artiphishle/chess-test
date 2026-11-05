@@ -8,9 +8,12 @@ export function useSlashShortcut(enabled: boolean, onOpen: () => void): void {
     if (!enabled) return;
     const keydown = (event: KeyboardEvent): void => {
       if (event.key !== '/' || event.altKey || event.ctrlKey || event.metaKey) return;
-      const target = event.target;
-      if (target instanceof HTMLElement && (target.isContentEditable ||
-        ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))) return;
+      const { target } = event;
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+      )
+        return;
       event.preventDefault();
       onOpen();
     };
