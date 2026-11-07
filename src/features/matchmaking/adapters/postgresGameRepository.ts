@@ -4,6 +4,7 @@ import type { Match } from '../../../types/match.ts';
 import type { GameRepository } from '../ports/gameRepository.ts';
 
 const table = 'chess_matches';
+const duplicateTableCode = '42P07';
 
 interface StoredMatch {
   readonly id: string;
@@ -17,8 +18,11 @@ interface StoredMatch {
 }
 
 /*** Create the durable PostgreSQL implementation of the matchmaking repository port. */
-export function createPostgresGameRepository(connectionString: string): GameRepository {
-  return createPostgresGameRepositoryFromAdapter(createPostgresAdapter({ connectionString }));
+export function createPostgresGameRepository(
+  connectionString: string,
+  adapter: PostgresAdapter = createPostgresAdapter({ connectionString }),
+): GameRepository {
+  return createPostgresGameRepositoryFromAdapter(adapter);
 }
 
 /*** Adapt the published PostgreSQL adapter without exposing database details to application policy. */
@@ -189,7 +193,7 @@ async function initializeAsync(adapter: PostgresAdapter): Promise<void> {
       { name: 'snapshot', type: 'json', required: true },
     ],
   });
-  if (!result.ok) throw new Error(result.error.message);
+  if (!result.ok && result.error.code !== duplicateTableCode) throw new Error(result.error.message);
 }
 
 /*** Keep queryable claim predicates aligned with the serialized immutable match snapshot. */
