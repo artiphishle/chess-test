@@ -44,41 +44,42 @@ export function createGameApi() {
 }
 
 /*** Return only the session holder's authorized game snapshot. */
-function readGame(request: ApiRequest): ApiHandlerResponse {
+async function readGame(request: ApiRequest): Promise<ApiHandlerResponse> {
   const identity = readIdentity(request.headers);
   const service = getGameService();
   return {
     headers,
-    body: { matches: identity ? service.games(identity) : [], lobby: service.lobby() },
+    body: {
+      matches: identity ? await service.gamesAsync(identity) : [],
+      lobby: await service.lobbyAsync(),
+    },
   };
 }
 
 /*** Apply a validated session command, isolating HTTP details from match state. */
-function writeGame(request: ApiRequest): ApiHandlerResponse {
+async function writeGame(request: ApiRequest): Promise<ApiHandlerResponse> {
   if (!isSameOrigin(request.headers))
     return { status: 403, headers, body: { error: 'Origin rejected' } };
   if (!isRecord(request.body) || typeof request.body.action !== 'string') {
     return { status: 400, headers, body: { error: 'Invalid command' } };
   }
-  const tabId = readTabId(request.headers['x-chess-tab-id']);
-  if (!tabId) return { status: 400, headers, body: { error: 'Missing tab identity' } };
   const service = getGameService();
   const browserId = readToken(request.headers.cookie);
   try {
     if (request.body.action === 'create' || request.body.action === 'join')
-      return createOrJoinGame(service, browserId, tabId, request.body);
+      return await createOrJoinGameAsync(service, browserId, request.body);
     if (!browserId) return { status: 401, headers, body: { error: 'No session' } };
     if (request.body.action === 'rename') {
-      service.rename(`${browserId}:${tabId}`, request.body.name);
+      await service.renameAsync(browserId, request.body.name);
       return { headers, body: { match: null } };
     }
     if (typeof request.body.matchId !== 'string' || !request.body.matchId) {
       return { status: 400, headers, body: { error: 'Missing match ID' } };
     }
-    const match = service.execute(
-      `${browserId}:${tabId}`,
+    const match = await service.executeAsync(
+      browserId,
       request.body.matchId,
-      request.body as Parameters<typeof service.execute>[2],
+      request.body as Parameters<typeof service.executeAsync>[2],
     );
     return { headers, body: { match } };
   } catch (error) {
@@ -91,18 +92,20 @@ function writeGame(request: ApiRequest): ApiHandlerResponse {
 }
 
 /*** Create a public offer or claim a named waiting seat with cookie-scoped identity. */
-function createOrJoinGame(
+async function createOrJoinGameAsync(
   service: ReturnType<typeof getGameService>,
   browserId: string | undefined,
-  tabId: string,
   body: Record<string, unknown>,
-): ApiHandlerResponse {
+): Promise<ApiHandlerResponse> {
   const verifiedBrowserId = browserId ?? randomUUID();
-  const identity = `${verifiedBrowserId}:${tabId}`;
   const joined =
     body.action === 'create'
-      ? service.create(identity, body.template, body.name)
-      : service.join(identity, typeof body.matchId === 'string' ? body.matchId : '', body.name);
+      ? await service.createAsync(verifiedBrowserId, body.template, body.name)
+      : await service.joinAsync(
+          verifiedBrowserId,
+          typeof body.matchId === 'string' ? body.matchId : '',
+          body.name,
+        );
   return {
     headers: browserId
       ? headers
@@ -110,7 +113,7 @@ function createOrJoinGame(
           ...headers,
           'set-cookie': `${cookieName}=${verifiedBrowserId}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`,
         },
-    body: { match: joined.match },
+    body: { match: joined },
   };
 }
 
@@ -141,16 +144,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/*** Scope one anonymous player to a valid shared browser cookie and a unique tab identifier. */
+/*** Scope one anonymous player solely to the server-authoritative opaque cookie. */
 function readIdentity(headerValues: ApiRequest['headers']): string | undefined {
-  const browserId = readToken(headerValues.cookie);
-  const tabId = readTabId(headerValues['x-chess-tab-id']);
-  return browserId && tabId ? `${browserId}:${tabId}` : undefined;
-}
-
-/*** Reject missing, malformed or oversized tab identities at the HTTP boundary. */
-function readTabId(value: string | undefined): string | undefined {
-  return value && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value)
-    ? value
-    : undefined;
+  return readToken(headerValues.cookie);
 }

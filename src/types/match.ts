@@ -35,4 +35,5 @@ export interface Match {
   createdAt: number;
   lastHostSeenAt: number;
   players: { w: string; b: string | null };
+  version: number;
 }
